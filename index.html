@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>다섯째 손가락 - 플레이어 전용 웹 대시보드 v2.15</title>
+<title>다섯째 손가락 - 플레이어 전용 웹 대시보드 v2.14</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   :root {
@@ -1185,6 +1185,118 @@
           <button class="btn-adj" style="width:auto; padding:0 6px; font-size:10.5px;" onclick="clearLogs()">비우기</button>
         </div>
         <div class="log-box" id="log-box"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 5. 성염 각성 방사형 트리 모달 -->
+<div id="skilltree-modal" class="tree-modal-overlay" onclick="closeRadialTreeModal(event)">
+  <div class="tree-modal-window" onclick="event.stopPropagation()">
+    <div class="tree-modal-top">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:14px; font-weight:900; color:#fbd38d;">🌳 순백 성염 각성 트리 (Flame Awakening Tree)</span>
+        <span style="font-size:11px; color:#94a3b8;">성염 무구의 각성 분기를 선택하여 전술을 심화하십시오.</span>
+      </div>
+      <button class="popover-close-btn" onclick="closeRadialTreeModal()">✕</button>
+    </div>
+    <div class="tree-canvas-area">
+      <div class="tree-board-inner">
+        <!-- SVG 연결선 레이어 -->
+        <svg class="tree-svg-layer" viewBox="0 0 960 550">
+          <!-- 코어 -> 각 티어 기본 노드 연결선 -->
+          <line x1="480" y1="275" x2="480" y2="155" class="tree-link-line active" />
+          <line x1="480" y1="275" x2="640" y2="275" class="tree-link-line active" />
+          <line x1="480" y1="275" x2="480" y2="395" class="tree-link-line active" />
+          <line x1="480" y1="275" x2="320" y2="275" class="tree-link-line active" />
+
+          <!-- A (상단 / 캔트립) 분기선 -->
+          <line id="line-a-1" x1="480" y1="155" x2="360" y2="70" class="tree-link-line" />
+          <line id="line-a-2" x1="480" y1="155" x2="600" y2="70" class="tree-link-line" />
+
+          <!-- B (우측 / 1서클) 분기선 -->
+          <line id="line-b-1" x1="640" y1="275" x2="810" y2="200" class="tree-link-line" />
+          <line id="line-b-2" x1="640" y1="275" x2="810" y2="350" class="tree-link-line" />
+
+          <!-- C (하단 / 2서클) 분기선 -->
+          <line id="line-c-1" x1="480" y1="395" x2="360" y2="480" class="tree-link-line" />
+          <line id="line-c-2" x1="480" y1="395" x2="600" y2="480" class="tree-link-line" />
+
+          <!-- D (좌측 / 3서클) 분기선 -->
+          <line id="line-d-1" x1="320" y1="275" x2="150" y2="200" class="tree-link-line" />
+          <line id="line-d-2" x1="320" y1="275" x2="150" y2="350" class="tree-link-line" />
+        </svg>
+
+        <!-- 중앙 코어 -->
+        <div class="tree-center-core">
+          <div class="tree-core-level" id="tree-core-lvl">1</div>
+          <div class="tree-core-label">성염 핵</div>
+        </div>
+
+        <!-- Tier A (상단): 캔트립 -->
+        <div id="node-a-0" class="tree-node-box base-node" style="left:480px; top:155px;" onclick="selectTreeNode('a', 0)">
+          <span class="node-name" id="node-name-a-0">기술명</span>
+          <div class="tree-node-tooltip tip-bottom" id="node-tip-a-0"></div>
+        </div>
+        <div id="node-a-1" class="tree-node-box branch-node" style="left:360px; top:70px;" onclick="selectTreeNode('a', 1)">
+          <span class="node-name" id="node-name-a-1">각성 1</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-a-1">+0</span>
+          <div class="tree-node-tooltip tip-bottom" id="node-tip-a-1"></div>
+        </div>
+        <div id="node-a-2" class="tree-node-box branch-node" style="left:600px; top:70px;" onclick="selectTreeNode('a', 2)">
+          <span class="node-name" id="node-name-a-2">각성 2</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-a-2">+0</span>
+          <div class="tree-node-tooltip tip-bottom" id="node-tip-a-2"></div>
+        </div>
+
+        <!-- Tier B (우측): 1서클 -->
+        <div id="node-b-0" class="tree-node-box base-node" style="left:640px; top:275px;" onclick="selectTreeNode('b', 0)">
+          <span class="node-name" id="node-name-b-0">기술명</span>
+          <div class="tree-node-tooltip tip-left" id="node-tip-b-0"></div>
+        </div>
+        <div id="node-b-1" class="tree-node-box branch-node" style="left:810px; top:200px;" onclick="selectTreeNode('b', 1)">
+          <span class="node-name" id="node-name-b-1">각성 1</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-b-1">+15</span>
+          <div class="tree-node-tooltip tip-left" id="node-tip-b-1"></div>
+        </div>
+        <div id="node-b-2" class="tree-node-box branch-node" style="left:810px; top:350px;" onclick="selectTreeNode('b', 2)">
+          <span class="node-name" id="node-name-b-2">각성 2</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-b-2">+15</span>
+          <div class="tree-node-tooltip tip-left" id="node-tip-b-2"></div>
+        </div>
+
+        <!-- Tier C (하단): 2서클 -->
+        <div id="node-c-0" class="tree-node-box base-node" style="left:480px; top:395px;" onclick="selectTreeNode('c', 0)">
+          <span class="node-name" id="node-name-c-0">기술명</span>
+          <div class="tree-node-tooltip tip-top" id="node-tip-c-0"></div>
+        </div>
+        <div id="node-c-1" class="tree-node-box branch-node" style="left:360px; top:480px;" onclick="selectTreeNode('c', 1)">
+          <span class="node-name" id="node-name-c-1">각성 1</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-c-1">+30</span>
+          <div class="tree-node-tooltip tip-top" id="node-tip-c-1"></div>
+        </div>
+        <div id="node-c-2" class="tree-node-box branch-node" style="left:600px; top:480px;" onclick="selectTreeNode('c', 2)">
+          <span class="node-name" id="node-name-c-2">각성 2</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-c-2">+30</span>
+          <div class="tree-node-tooltip tip-top" id="node-tip-c-2"></div>
+        </div>
+
+        <!-- Tier D (좌측): 3서클 -->
+        <div id="node-d-0" class="tree-node-box base-node" style="left:320px; top:275px;" onclick="selectTreeNode('d', 0)">
+          <span class="node-name" id="node-name-d-0">기술명</span>
+          <div class="tree-node-tooltip tip-right" id="node-tip-d-0"></div>
+        </div>
+        <div id="node-d-1" class="tree-node-box branch-node" style="left:150px; top:200px;" onclick="selectTreeNode('d', 1)">
+          <span class="node-name" id="node-name-d-1">각성 1</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-d-1">+50</span>
+          <div class="tree-node-tooltip tip-right" id="node-tip-d-1"></div>
+        </div>
+        <div id="node-d-2" class="tree-node-box branch-node" style="left:150px; top:350px;" onclick="selectTreeNode('d', 2)">
+          <span class="node-name" id="node-name-d-2">각성 2</span>
+          <span class="node-cost stat-fixed-val" id="node-cost-d-2">+50</span>
+          <div class="tree-node-tooltip tip-right" id="node-tip-d-2"></div>
+        </div>
+
       </div>
     </div>
   </div>
