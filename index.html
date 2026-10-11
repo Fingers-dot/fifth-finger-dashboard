@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>다섯째 손가락 - 플레이어 전용 웹 대시보드 v2.19</title>
+<title>다섯째 손가락 - 플레이어 전용 웹 대시보드 v2.23</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   :root {
@@ -256,7 +256,8 @@
     padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; position: relative;
     transition: z-index 0.05s ease;
   }
-  .panel-box:hover, .panel-box:focus-within { z-index: 40; }
+  .panel-box:focus-within { z-index: 40; }
+  .panel-box:hover { z-index: 50 !important; }
   .panel-box-title { font-size: 13px; font-weight: 800; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
 
   /* 게이지 공통 */
@@ -324,15 +325,21 @@
     to { background-position: -448px 0; }
   }
 
-  /* 툴팁 */
+  /* 툴팁 (100% 완전 불투명 솔리드 다크 및 블러 투과 완전 차단) */
   .tooltip-box, .heat-tooltip-card {
-    display: none !important; position: absolute; z-index: 10000040;
-    background: rgba(12, 16, 26, 0.98); backdrop-filter: blur(8px);
+    display: none !important; position: absolute; z-index: 10000060 !important;
+    background: #090c14 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     border: 1.5px solid #38bdf8; border-radius: 8px; padding: 10px 12px;
-    color: #e2e8f0; font-size: 11px; line-height: 1.55; box-shadow: 0 12px 30px rgba(0,0,0,0.9);
+    color: #e2e8f0; font-size: 11px; line-height: 1.55;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 1), 0 0 20px rgba(56, 189, 248, 0.2);
     pointer-events: none; width: 260px; word-break: keep-all; text-align: left;
     opacity: 1 !important; filter: none !important; transform: none !important;
   }
+  .skill-card .tooltip-box {
+    background: #090c14 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+  }
+
+
   *:hover > .tooltip-box, *:hover > .heat-tooltip-card { display: block !important; }
   .tooltip-box.left-align { left: 0; top: calc(100% + 6px); }
   .tooltip-box.right-align { right: 0; top: calc(100% + 6px); }
@@ -398,6 +405,21 @@
     cursor: pointer; position: relative; transition: all 0.18s ease; display: flex; flex-direction: column; gap: 2px;
   }
   .skill-card:hover { border-color: #38bdf8; background: #1c2233; }
+  .skill-card.heat-locked {
+    cursor: not-allowed !important;
+    border-color: #4a2128 !important;
+    background: #110d14 !important;
+  }
+  .skill-card.heat-locked .skill-title,
+  .skill-card.heat-locked .skill-cost,
+  .skill-card.heat-locked .num-stable {
+    opacity: 0.45;
+    filter: grayscale(0.5);
+  }
+
+  .skill-card.heat-locked:hover {
+    border-color: #ef4444 !important;
+  }
   .skill-header-btn { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; position: relative; }
   .skill-title { font-size: 11.5px; font-weight: 900; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .skill-title.awakened { color: #fbd38d; }
@@ -424,6 +446,7 @@
   /* 컴패니언 액션 */
   .comp-action-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
   .comp-btn-wrapper { position: relative; }
+  .comp-btn-wrapper:hover { z-index: 60; }
   .comp-action-btn {
     width: 100%; background: #1c2233; border: 1.5px solid #2d3852; border-radius: 6px;
     padding: 8px 6px; color: #e2e8f0; font-size: 11.5px; font-weight: 800; cursor: pointer; transition: all 0.15s ease;
@@ -462,13 +485,30 @@
   .btn-dice-mode.active-dis { background: #7f1d1d; border-color: #ef4444; color: #fca5a5; }
   .btn-dice-mode.active-vuln { background: #78350f; border-color: #f59e0b; color: #fde68a; }
 
+  /* 3. 전술 실행 및 턴 복사 트윈 그리드 */
+  .btn-execute-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%;
+  }
   .btn-execute-wide {
     width: 100%; background: linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%);
     border: 1.5px solid #38bdf8; border-radius: 6px; padding: 9px; color: #ffffff;
-    font-size: 13px; font-weight: 900; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s ease;
+    font-size: 12.5px; font-weight: 900; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s ease;
+    white-space: nowrap; display: inline-flex; align-items: center; justify-content: center;
   }
   .btn-execute-wide:hover:not(:disabled) { background: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%); box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); }
   .btn-execute-wide:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-copy-wide {
+    width: 100%; background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);
+    border: 1.5px solid #34d399; border-radius: 6px; padding: 9px; color: #ffffff;
+    font-size: 12.5px; font-weight: 900; letter-spacing: 0.5px; cursor: pointer; transition: all 0.15s ease;
+    white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+  }
+  .btn-copy-wide:hover {
+    background: linear-gradient(135deg, #047857 0%, #10b981 100%);
+    box-shadow: 0 0 16px rgba(52, 211, 153, 0.6);
+  }
 
   .dice-panel {
     background: #0b0d14; border: 1.5px solid #232a3d; border-radius: 8px; padding: 12px;
@@ -1367,9 +1407,14 @@
             <button class="btn-adj" style="width:auto; padding:0 6px; background:#1e3a5f; border-color:#38bdf8; color:#38bdf8; font-weight:800; font-size:10px; white-space:nowrap;" onclick="endCombat()">❄ 전투 종료</button>
           </div>
         </div>
-        <button class="btn-execute-wide" id="btn-execute-queue" onclick="executeQueuedActions()" disabled>
-          ⚔ 전술 행동 순차 실행 (선택: 0 / 2)
-        </button>
+        <div class="btn-execute-grid">
+          <button class="btn-execute-wide" id="btn-execute-queue" onclick="executeQueuedActions()" disabled>
+            ⚔ 전술 행동 실행 (0 / 2)
+          </button>
+          <button class="btn-copy-wide" id="btn-quick-copy" onclick="copyStatusToClipboard(this)">
+            📋 턴 브리핑 복사
+          </button>
+        </div>
 
         <div class="dice-panel" id="dice-panel">
           <div class="dice-total" id="dice-total-display">대기중</div>
@@ -5908,10 +5953,62 @@
   };
 
   const CLASS_DATA = {
-    '파이터': { name: '파이터 (Fighter)', role: '검과 방패 · 공방일체 및 과열 조율형 전사', hp: 12, ac: 13, image: 'assets/fighter.png', desc: '방패 방어와 반격으로 전선을 유지하며, 과열 게이지를 정밀하게 조율하는 공방일체형 전사.', feat: '근접 물리 공격, 완력 및 장애물 돌파, 체력적 인내, 방어적 신체 반응', skills: [{ name: '쾌속 찌르기', desc: '검끝에 백색 성염을 휘감아 적의 빈틈을 번개처럼 파고드는 찌르기' }, { name: '쳐내고 베기', desc: '방패로 적의 공격을 쳐내며 피격을 경감하고 날카로운 반격을 가함' }, { name: '백색 철벽', desc: '성염의 방어막을 전개하여 공격을 유인하고 동료를 결사 엄호' }, { name: '단죄의 연격 난무', desc: '순백 성염의 무구를 한계까지 휘둘러 숨통을 끊는 치명적인 난무' }] },
-    '검객': { name: '검객 (Swordsman)', role: '검과 검집 · 회피 기동 및 변칙 궤적의 쾌검사', hp: 12, ac: 11, image: 'assets/swordsman.png', desc: '검집을 이용한 흘리기와 변칙적인 궤적의 발도술로 적의 공격을 무력화하고 배후를 노리는 기동형 쾌검사.', feat: '도검 및 기동 공격, 도약 및 곡예, 잠입 및 균형 유지, 전장 이탈', skills: [{ name: '호선참', desc: '검집에서 빛의 속도로 칼날을 뽑아 적의 전면을 베어 넘기는 일섬' }, { name: '윤무', desc: '백색 성염의 원형 궤적을 그리며 전방의 적 전체를 베어 넘기는 회전격' }, { name: '무형보', desc: '검집으로 적의 칼날을 튕겨내며 공격을 완벽히 흘려보내는 회피 보법' }, { name: '용미섬', desc: '폭풍처럼 회전하며 전장을 휩쓸어 적 진형을 단번에 무너뜨리는 참격' }] },
-    '메이지': { name: '메이지 (Mage)', role: '성염 지팡이 · 원거리 광역 화력 및 아군 생명 회복', hp: 10, ac: 11, image: 'assets/mage.png', desc: '강력한 원거리 광역 성염 마법과 성염을 통한 아군 회복 및 전술 보조를 담당하는 후방 캐스터.', feat: '원거리 성염 마법, 휘석 및 붉은 모래 연구, 마법진 해독, 역사 및 종교 지식 식별', skills: [{ name: '성염구슬', desc: '지팡이 끝에서 백색 성염 탄환을 집속하여 투사하는 화염구' }, { name: '성염 치유', desc: '순백 성염의 따스한 온기로 상처를 치유하고 재생' }, { name: '염화기둥', desc: '지정 구역의 대지를 폭발시키며 솟구쳐 오르는 거대한 백색 성염 기둥' }, { name: '성염 낙하', desc: '하늘에서 태초의 순백 유성을 소환해 잿더미로 만드는 폭격' }] },
-    '등지기': { name: '등지기 (Lamplighter)', role: '룬 랜턴 · 신기루 장막 및 전술 지원 컨트롤러', hp: 10, ac: 11, image: 'assets/lamplighter.png', desc: '랜턴의 백색 성염을 굴절시켜 적의 인식을 교란하고, 빛과 열기로 아군의 잠재력을 한계까지 끌어올리는 전술형 버퍼.', feat: '원거리 투사 공격, 기만 및 변장, 거짓말 간파, 길 찾기 및 어둠 탐색, 지원 신호', skills: [{ name: '인광탄', desc: '랜턴의 빛을 집속하여 시야를 꿰뚫고 타격을 가하는 유도 광탄' }, { name: '신기루 장막', desc: '빛의 성염을 굴절시켜 아군에게 잔영을 두르고 적의 공격 1회를 완벽히 상쇄' }, { name: '과부하 조광', desc: '랜턴의 광도를 끌어올려 대상 아군의 공격 화력을 대폭 강화' }, { name: '환룡의 포효', desc: '빛과 성염으로 빚어낸 거대한 용의 환영으로 적 전체를 공포로 억압' }] }
+    '파이터': { 
+      name: '파이터 (Fighter)', 
+      role: '검과 방패 · 공방일체 및 과열 조율형 전사', 
+      hp: 12, ac: 13, 
+      image: 'assets/fighter.png', 
+      desc: '가장 높은 체급(HP 12/AC 13)과 방패 방어, 피격 경감, 방어막으로 전선을 유지하는 완성형 딜탱.', 
+      feat: '근접 물리 공격, 완력 및 장애물 돌파, 체력적 인내, 방어적 신체 반응 (+3)', 
+      skills: [
+        { name: '쾌속 찌르기', desc: '검끝에 백색 성염을 휘감아 적의 빈틈을 파고드는 기본 찌르기 [과열 +0 / 고정 5 피해]' },
+        { name: '쳐내고 베기', desc: '단일 적 6 피해 + 이번 라운드 피격 피해 3 감소 (빗나감 시 스침 2) [과열 +15]' },
+        { name: '백색 철벽', desc: '방어막 10 획득 + 피격 피해 3 감소. 적 광역 시 [결사의 수호] 선언 가능 [과열 +30]' },
+        { name: '단죄의 연격 난무', desc: '단일 적 16 피해. 동료 노리는 인텐트 시 대상 공격력 -3 감소 (빗나감 시 스침 2) [과열 +50]' }
+      ] 
+    },
+    '검객': { 
+      name: '검객 (Swordsman)', 
+      role: '검과 검집 · 회피 기동 및 변칙 궤적의 쾌검사', 
+      hp: 12, ac: 11, 
+      image: 'assets/swordsman.png', 
+      desc: '적의 치명타를 [무형보]로 완전히 흘려보내고, 변칙적인 광역 궤적으로 적 진형을 쓸어 담는 기동형 스트라이커.', 
+      feat: '도검 및 기동 공격, 도약 및 곡예, 잠입 및 균형 유지, 전장 이탈 (+3)', 
+      skills: [
+        { name: '호선참', desc: '검집에서 빛의 속도로 칼날을 뽑아 적의 전면을 베어 넘기는 일섬 [과열 +0 / 고정 5 피해]' },
+        { name: '윤무', desc: '전방 적 전체에게 고정 4 광역 피해 (빗나감 시 스침 2) [과열 +15]' },
+        { name: '무형보', desc: '자신을 향한 적 단일/광역 공격 1회 완전 회피 (피해 0 / 광역 시 동료는 정상 피격) [과열 +30]' },
+        { name: '용미섬', desc: '범위 내 모든 적에게 고정 14 광역 피해 (빗나감 시 스침 2) [과열 +50]' }
+      ] 
+    },
+    '메이지': { 
+      name: '메이지 (Mage)', 
+      role: '성염 지팡이 · 원거리 광역 화력 및 아군 생명 회복', 
+      hp: 10, ac: 11, 
+      image: 'assets/mage.png', 
+      desc: '판정 없는 확정 회복(HP 6)으로 파티를 지탱하며, 2~3서클의 광역 성염으로 전장을 일소하는 후방 캐스터.', 
+      feat: '원거리 성염 마법, 휘석 및 붉은 모래 연구, 마법진 해독, 역사 및 종교 지식 식별 (+3)', 
+      skills: [
+        { name: '성염구슬', desc: '원거리 단일 적에게 백색 성염 탄환 투사 [과열 +0 / 고정 5 마법 피해]' },
+        { name: '성염 치유', desc: '별도 판정 없이 아군 1체(자신 또는 컴패니언)의 HP 고정 6 즉시 회복 [과열 +15]' },
+        { name: '염화기둥', desc: '적 전체에게 고정 7 광역 피해 (빗나감 시 스침 2) [과열 +30]' },
+        { name: '성염 낙하', desc: '하늘에서 태초의 순백 유성을 소환해 적 전체 고정 18 광역 피해 (빗나감 시 스침 2) [과열 +50]' }
+      ] 
+    },
+    '등지기': { 
+      name: '등지기 (Lamplighter)', 
+      role: '룬 랜턴 · 신기루 장막 및 전술 지원 컨트롤러', 
+      hp: 10, ac: 11, 
+      image: 'assets/lamplighter.png', 
+      desc: '피해를 1로 줄이는 [신기루 장막]과 동료 공격에 추가 폭발을 얹는 [과부하 조광]을 조율하는 전술형 버퍼.', 
+      feat: '원거리 투사 공격, 기만 및 변장, 거짓말 간파, 길 찾기 및 어둠 탐색, 지원 신호 (+3)', 
+      skills: [
+        { name: '인광탄', desc: '랜턴의 빛을 집속하여 시야를 꿰뚫고 타격을 가하는 유도 광탄 [과열 +0 / 고정 5 피해]' },
+        { name: '신기루 장막', desc: '아군 1체 장막 전개 (5 이하 피해는 1로 경감 / 5 초과 시 5 경감 후 소멸) [과열 +15]' },
+        { name: '과부하 조광', desc: '동료 직접 공격 적중 시 [+3 성염 기폭] 추가 (2R부터 라운드 종료 시 과열 +10 지불로 유지) [과열 +30]' },
+        { name: '환룡의 포효', desc: '적 전체 14 피해 + 아군 전체 HP 1 회복 (탈진 동료 HP 1 즉시 복귀, 빗나감 시 스침 2) [과열 +50]' }
+      ] 
+    }
   };
 
   const COMP_DATA = {
@@ -5923,8 +6020,8 @@
     ]},
     '릴리': { name: '릴리 애쉬포드', class: '소서러 (지팡이) · 마력 조율 학자 & 생명 버퍼', hp: 11, ac: 10, image: 'assets/lily.png', lore: '르니그의 학자. 자신의 생명을 깎아가며 힘을 다루는 베어러의 완결을 지키고자 동행합니다.', feat: '원거리 마력 공격, 생명력 및 마도 의학 연구, 고문서 식별 단독 판정', skills: [
       { name: '마력 파동', desc: '단일 적 고정 4 피해. 적중 시 대상의 다음 1회 공격 피해량 -2 경감' },
-      { name: '생명 흡수진', desc: '판정 없이 공격 대상 적 1 피해 + 아군 HP 2 회복 (또는 릴리 1 자해로 베어러 HP 2 회복)' },
-      { name: '마력 흡수진', desc: '판정 없이 적 5 피해 + 베어러 과열 -15 냉각 + 다음 공격 +3 (쿨다운: 4라운드)' },
+      { name: '생명 흡수진', desc: '이번 라운드 베어러가 공격한 적 1체 판정 없이 1 피해 + 아군 HP 2 회복 (또는 릴리 1 자해로 베어러 HP 2 회복)' },
+      { name: '마력 흡수진', desc: '이번 라운드베어러가 공격한 적 1체 판정 없이 5 피해 + 베어러 과열 -15 냉각 + 다음 공격 +3 (쿨다운: 4라운드)' },
       { name: '파동 왜곡', desc: 'A스킬 [마력 파동]의 공격력 경감 수치가 고정 -3으로 강화' }
     ]},
     '센': { name: '시모츠키 센', class: '마검사 (한손검) · 고속 기동 & 마탄 차징 폭딜러', hp: 11, ac: 12, image: 'assets/sen.png', lore: '카른의 전 대속자이자 왕실 기사단장. 국왕의 명으로 베어러와 함께하며 칼을 맞댑니다.', feat: '고속 검술 공격, 기사단 전술, 귀족 의전 및 전장 정찰 단독 판정', skills: [
@@ -5951,63 +6048,63 @@
   const BEARERS = {
     '파이터': {
       hp: 12, ac: 13,
-      a: { name: '쾌속 찌르기', cost: 0, dmg: 5, desc: '검끝에 백색 성염을 휘감아 적의 빈틈을 번개처럼 파고드는 찌르기 [과열 +0]',
-           up1: { name: '억제 찌르기', cost: 0, dmg: 6, desc: '고정 6 피해. 적중 시 대상의 이번 라운드 다음 1회 공격 피해 -1 경감' },
-           up2: { name: '구원 찌르기', cost: 0, dmg: 5, desc: '적의 인텐트에 동료가 포함되어 있을 때 적중 시 고정 2 피해 추가 (총 7 피해)' } },
-      b: { name: '쳐내고 베기', cost: 15, dmg: 6, desc: '단일 적에게 고정 6 피해 + 이번 라운드 피격 피해 3 감소 [과열 +15]',
-           up1: { name: '냉각 베기', cost: 10, dmg: 6, desc: '과열 증가량을 +10으로 억제 (고정 6 피해 + 피격 3 경감)' },
-           up2: { name: '회전 베기', cost: 15, dmg: 3, desc: '적 전체에게 각각 고정 3 광역 피해 + 이번 턴 피격 피해 4 감소' } },
-      c: { name: '백색 철벽', cost: 30, dmg: 0, desc: '방어막 10을 획득하고 이번 라운드 피격 피해 3 감소 (광역 공격 시 결사의 수호 가능) [과열 +30]',
-           up1: { name: '안정 방호', cost: 15, dmg: 0, desc: '과열 증가량을 +15로 억제 (방어막 10 + 피격 3 경감)' },
-           up2: { name: '난공불락', cost: 30, dmg: 0, desc: '방어막 14 획득 + 피격 피해 3 감소 유지 및 방어막 지속 중 [행동 제약] 면역' } },
-      d: { name: '단죄의 연격 난무', cost: 50, dmg: 16, desc: '단일 적에게 고정 16 피해. 동료 노리는 인텐트 시 대상 공격 피해 -3 감소 [과열 +50]',
-           up1: { name: '열기 억제 난무', cost: 30, dmg: 16, desc: '과열 증가량을 +30으로 억제하며 고정 16 피해' },
-           up2: { name: '필중 난무', cost: 50, dmg: 16, desc: '명중 판정에 유리함 적용하며 고정 16 피해' } }
+      a: { name: '쾌속 찌르기', cost: 0, dmg: 5, desc: '검끝에 백색 성염을 휘감아 적의 빈틈을 파고드는 기본 찌르기 [과열 +0 / 고정 5 피해]',
+           up1: { name: '억제 찌르기', cost: 0, dmg: 6, desc: '고정 6 피해. 적중 시 대상의 자세를 무너뜨려 이번 라운드 대상의 다음 1회 공격 피해량 -1 경감 (타 경감 중첩 가능, 최소 0, 광역 시 아군 각자 -1)' },
+           up2: { name: '구원 찌르기', cost: 0, dmg: 5, desc: '적 인텐트에 동료가 포함(단일 또는 광역)되어 있을 때 적중 시 고정 2 피해 추가 (총 7 피해)' } },
+      b: { name: '쳐내고 베기', cost: 15, dmg: 6, desc: '단일 적 고정 6 피해 + 이번 라운드 피격 피해 3 감소 (빗나감 시 스침 2 보장) [과열 +15]',
+           up1: { name: '냉각 베기', cost: 10, dmg: 6, desc: '과열 증가량을 +10으로 억제하며 고정 6 피해 + 이번 라운드 피격 피해 3 감소 (빗나감 시 스침 2 보장)' },
+           up2: { name: '회전 베기', cost: 15, dmg: 3, desc: '적 전체에게 각각 고정 3 광역 피해 + 이번 턴 자신이 받는 피격 피해 4 감소 (빗나감 시 스침 2 보장)' } },
+      c: { name: '백색 철벽', cost: 30, dmg: 0, desc: '방어막 10 획득 + 이번 라운드 피격 피해 3 감소. 적 광역 시 [결사의 수호] 선언으로 동료 피해 전량 흡수 가능 [과열 +30]',
+           up1: { name: '안정 방호', cost: 15, dmg: 0, desc: '과열 증가량을 +15로 억제하며 방어막 10 획득 + 이번 라운드 피격 피해 3 감소 (결사의 수호 가능)' },
+           up2: { name: '난공불락', cost: 30, dmg: 0, desc: '방어막 14 획득 + 이번 라운드 피격 피해 3 감소 유지 및 방어막 지속 중 [행동 제약] 완전 면역' } },
+      d: { name: '단죄의 연격 난무', cost: 50, dmg: 16, desc: '단일 적 고정 16 피해. 적 인텐트에 동료 포함 시 적중 시 대상 이번 라운드 공격 피해량 -3 감소 (광역 시 아군 각각 3 감소, 빗나감 시 스침 2) [과열 +50]',
+           up1: { name: '열기 억제 난무', cost: 30, dmg: 16, desc: '과열 증가량을 +30으로 억제하며 단일 적 고정 16 피해 (적 인텐트에 동료 포함 시 공격 피해 -3 감소, 빗나감 시 스침 2)' },
+           up2: { name: '필중 난무', cost: 50, dmg: 16, desc: '명중 판정에 [유리함(2d20 High)] 적용하며 단일 적 고정 16 피해 (동료 보호 효과 유지, 빗나감 시 스침 2)' } }
     },
     '검객': {
       hp: 12, ac: 11,
-      a: { name: '호선참', cost: 0, dmg: 5, desc: '검집에서 빛의 속도로 칼날을 뽑아 적의 전면을 베어 넘기는 일섬 [과열 +0]',
-           up1: { name: '예기 집중', cost: 0, dmg: 6, desc: '고정 6 피해로 증가 [과열 +0]' },
-           up2: { name: '연격 발도', cost: 10, dmg: 5, desc: '고정 5 피해 [과열 +10]. 적중 시 다음 턴 자신의 첫 판정에 [유리함] 적용' } },
-      b: { name: '윤무', cost: 15, dmg: 4, desc: '전방 적 전체에게 고정 4 광역 피해 [과열 +15]',
-           up1: { name: '염호의 원', cost: 15, dmg: 6, desc: '전방 적 전체에게 고정 6 광역 피해 [과열 +15]' },
-           up2: { name: '원형 방진', cost: 15, dmg: 4, desc: '전체 4 피해 + 이번 턴 피격 피해 4 경감' } },
-      c: { name: '무형보', cost: 30, dmg: 0, desc: '자신을 향한 적 공격 1회 완벽 회피(피해 0) [과열 +30]',
-           up1: { name: '섬광 반격', cost: 30, dmg: 5, desc: '완벽 회피 + 공격한 적에게 고정 5 반격 피해' },
-           up2: { name: '환영 침투', cost: 30, dmg: 0, desc: '완벽 회피 + 다음 턴 첫 공격 판정에 유리함 적용' } },
-      d: { name: '용미섬', cost: 50, dmg: 14, desc: '범위 내 모든 적에게 고정 14 광역 피해 [과열 +50]',
-           up1: { name: '승천격', cost: 50, dmg: 18, desc: '광역 폭풍 피해 고정 18로 증가 [과열 +50]' },
-           up2: { name: '단죄의 낙인', cost: 50, dmg: 14, desc: '적 전체 14 피해 + [방어 약화] 및 [지속 피해: 3] 부여' } }
+      a: { name: '호선참', cost: 0, dmg: 5, desc: '검집에서 빛의 속도로 칼날을 뽑아 적의 전면을 베어 넘기는 일섬 [과열 +0 / 고정 5 피해]',
+           up1: { name: '예기 집중', cost: 0, dmg: 6, desc: '칼날을 더욱 예리하게 벼려 고정 6 피해로 증가 [과열 +0]' },
+           up2: { name: '연격 발도', cost: 10, dmg: 5, desc: '고정 5 피해 [과열 +10]. 적중 시 발도 자세를 취해 다음 턴 자신의 첫 판정 주사위에 [유리함] 적용' } },
+      b: { name: '윤무', cost: 15, dmg: 4, desc: '전방 적 전체에게 고정 4 광역 피해 (빗나감 시 스침 2 보장) [과열 +15]',
+           up1: { name: '염호의 원', cost: 15, dmg: 6, desc: '백색 불꽃을 넓게 둘러 전방 적 전체에게 고정 6 광역 피해 (빗나감 시 스침 2 보장) [과열 +15]' },
+           up2: { name: '원형 방진', cost: 15, dmg: 4, desc: '전방 적 전체 4 광역 피해 + 이번 턴 자신이 받는 피격 피해 고정 4 경감 (빗나감 시 스침 2 보장)' } },
+      c: { name: '무형보', cost: 30, dmg: 0, desc: '적 인텐트에 자신(베어러) 포함 시 선언. 이번 라운드 자신을 향한 적 공격 1회 완벽 회피(피해 0 / 광역 시 동료는 정상 피격) [과열 +30]',
+           up1: { name: '섬광 반격', cost: 30, dmg: 5, desc: '자신을 향한 적 공격 1회 완벽 회피(피해 0)와 동시에 공격한 적에게 고정 5 반격 피해 작렬' },
+           up2: { name: '환영 침투', cost: 30, dmg: 0, desc: '적 공격 1회 완벽 회피 + 잔영을 흩뿌려 다음 턴 자신의 첫 공격 판정에 [유리함] 적용' } },
+      d: { name: '용미섬', cost: 50, dmg: 14, desc: '범위 내 모든 적에게 고정 14 광역 피해 (빗나감 시 스침 2 보장) [과열 +50]',
+           up1: { name: '승천격', cost: 50, dmg: 18, desc: '폭풍 회전격으로 범위 내 모든 적에게 고정 18 광역 피해 (빗나감 시 스침 2 보장) [과열 +50]' },
+           up2: { name: '단죄의 낙인', cost: 50, dmg: 14, desc: '적 전체 14 광역 피해 + 적중한 모든 적에게 [방어 약화] 및 [지속 피해: 3] 동시 부여 (빗나감 시 스침 2)' } }
     },
     '메이지': {
       hp: 10, ac: 11,
-      a: { name: '성염구슬', cost: 0, dmg: 5, desc: '원거리 단일 적 고정 5 마법 피해 [과열 +0]',
-           up1: { name: '잔류 화염', cost: 0, dmg: 4, desc: '고정 4 피해 + 대상에게 1턴간 [지속 피해: 3] 부여' },
-           up2: { name: '화염 보호막', cost: 0, dmg: 5, desc: '고정 5 피해. 적중 시 자신에게 방어막 1 부여' } },
-      b: { name: '성염 치유', cost: 15, dmg: 0, desc: '판정 없이 아군 1체 HP 고정 6 회복 [과열 +15]',
-           up1: { name: '치유의 불꽃', cost: 15, dmg: 0, desc: '즉시 HP 6 회복 + 대상의 다음 행동 턴 종료 시 HP 3 추가 회복' },
-           up2: { name: '열기 가속', cost: 15, dmg: 0, desc: '아군 1체 HP 6 회복 + 대상의 다음 첫 판정에 유리함 부여' } },
-      c: { name: '염화기둥', cost: 30, dmg: 7, desc: '지정 구역 적 전체에게 고정 7 피해 [과열 +30]',
-           up1: { name: '화염 장벽', cost: 30, dmg: 7, desc: '적 전체 7 피해 + 다음 턴 아군 피격 피해 5 경감, 공격자에게 [지속 피해: 3]' },
-           up2: { name: '섬광과 연막', cost: 30, dmg: 7, desc: '적 전체 7 피해 + 적중한 적을 공격하는 아군의 첫 공격에 [유리함] 부여' } },
-      d: { name: '성염 낙하', cost: 50, dmg: 18, desc: '적 전체에게 고정 18 피해 [과열 +50]',
-           up1: { name: '초토화', cost: 50, dmg: 23, desc: '고정 23 피해로 증가 + 생존 적 전체에게 [방어 약화] 부여' },
-           up2: { name: '축복의 유성', cost: 50, dmg: 18, desc: '기본 피해(18) + 아군 전체 HP 5 회복 및 과열 10 냉각' } }
+      a: { name: '성염구슬', cost: 0, dmg: 5, desc: '원거리 단일 적에게 백색 성염 탄환 투사 [과열 +0 / 고정 5 마법 피해]',
+           up1: { name: '잔류 화염', cost: 0, dmg: 4, desc: '원거리 단일 적 고정 4 피해 + 대상에게 1턴간 [지속 피해: 3] 부여' },
+           up2: { name: '화염 보호막', cost: 0, dmg: 5, desc: '원거리 단일 적 고정 5 피해. 적중 시 반동 마력으로 자신에게 방어막 1 부여' } },
+      b: { name: '성염 치유', cost: 15, dmg: 0, desc: '별도 판정 없이 아군 1체(자신 또는 컴패니언)의 HP 고정 6 즉시 회복 [과열 +15]',
+           up1: { name: '치유의 불꽃', cost: 15, dmg: 0, desc: '즉시 아군 1체 HP 6 회복 + 치유를 받은 대상의 다음 행동 턴 종료 시 HP 3 추가 회복' },
+           up2: { name: '열기 가속', cost: 15, dmg: 0, desc: '아군 1체 HP 6 회복 + 대상의 다음 첫 판정 주사위에 [유리함] 부여' } },
+      c: { name: '염화기둥', cost: 30, dmg: 7, desc: '지정 구역 대지를 폭발시켜 적 전체에게 고정 7 광역 피해 (빗나감 시 스침 2 보장) [과열 +30]',
+           up1: { name: '화염 장벽', cost: 30, dmg: 7, desc: '적 전체 고정 7 광역 피해 + 다음 턴 아군 피격 피해 5 경감 및 아군을 공격한 적에게 [지속 피해: 3] 반사' },
+           up2: { name: '섬광과 연막', cost: 30, dmg: 7, desc: '적 전체 고정 7 광역 피해 + 적중한 적을 공격하는 아군의 첫 공격에 [유리함] 부여 (빗나감 시 스침 2)' } },
+      d: { name: '성염 낙하', cost: 50, dmg: 18, desc: '태초의 순백 유성을 소환해 적 전체 고정 18 광역 피해 (빗나감 시 스침 2 보장) [과열 +50]',
+           up1: { name: '초토화', cost: 50, dmg: 23, desc: '적 전체 광역 피해 고정 23으로 증가 + 생존 적 전체에게 [방어 약화] 부여 (빗나감 시 스침 2)' },
+           up2: { name: '축복의 유성', cost: 50, dmg: 18, desc: '적 전체 18 광역 피해 + 아군 전체 HP 5 회복 및 시전 즉시 과열 10 냉각 (넷 과열 +40, 빗나감 시 스침 2)' } }
     },
     '등지기': {
       hp: 10, ac: 11,
-      a: { name: '인광탄', cost: 0, dmg: 5, desc: '원거리 적 1체 고정 5 피해 [과열 +0]',
-           up1: { name: '유도 광선', cost: 0, dmg: 5, desc: '명중 판정에 유리함 적용 (고정 5 피해)' },
-           up2: { name: '산란광', cost: 0, dmg: 1, desc: '적 전체에게 고정 1 피해 (자신 노리는 적에게는 고정 3 피해)' } },
-      b: { name: '신기루 장막', cost: 15, dmg: 0, desc: '아군 1체 장막 전개 (5 이하 피해는 1로 줄이고 최대 2회 방어, 5 초과 시 5 경감 후 소멸) [과열 +15]',
-           up1: { name: '굴절 방벽', cost: 15, dmg: 0, desc: '버티는 기준을 6 이하로 상향 (6 초과 시 6 경감 후 소멸)' },
-           up2: { name: '은폐의 잔영', cost: 15, dmg: 0, desc: '기본 신기루 장막 + 부여받은 대상의 다음 공격 판정 1회에 [유리함] 부여' } },
-      c: { name: '과부하 조광', cost: 30, dmg: 0, desc: '동료가 직접 공격 적중 시 [성염 기폭: +3 피해] 즉시 폭발 (라운드 종료 시 과열 +10 지불로 유지) [과열 +30]',
-           up1: { name: '불멸의 잔광', cost: 30, dmg: 0, desc: '버프 중 치명상 시 1회에 한해 HP 1로 생존' },
-           up2: { name: '작열의 광기', cost: 30, dmg: 0, desc: '추가 피해량을 +5로 상향 (단, 대상이 라운드 종료 시 2 피해)' } },
-      d: { name: '환룡의 포효', cost: 50, dmg: 14, desc: '적 전체에게 고정 14 피해 + 아군 전체 HP 1 회복 (탈진 동료 HP 1 즉시 복귀) [과열 +50]',
-           up1: { name: '공포의 붕괴', cost: 50, dmg: 14, desc: '적 전체 14 피해 + 적 다음 턴 공격 명중 판정 시 불리함 부여' },
-           up2: { name: '용위의 억압', cost: 50, dmg: 14, desc: '적 전체 14 피해 + 지정 적 1체 1턴간 [행동 제약]' } }
+      a: { name: '인광탄', cost: 0, dmg: 5, desc: '원거리 적 1체에게 굴절된 빛을 집속하여 타격 [과열 +0 / 고정 5 피해]',
+           up1: { name: '유도 광선', cost: 0, dmg: 5, desc: '빛의 궤적을 좁혀 명중 판정에 [유리함(2d20 High)] 적용 (고정 5 피해)' },
+           up2: { name: '산란광', cost: 0, dmg: 1, desc: '적 전체에게 각각 고정 1 피해. 적 인텐트에 자신(베어러) 포함 시 해당 적에게 고정 2 추가 (총 3 피해, 비공격 적은 1 피해)' } },
+      b: { name: '신기루 장막', cost: 15, dmg: 0, desc: '아군 1체 장막 전개 (5 이하 피해는 1로 경감 / 최대 2회 방어 / 5 초과 시 5 경감 후 소멸) [과열 +15]',
+           up1: { name: '굴절 방벽', cost: 15, dmg: 0, desc: '버티는 기준을 6 이하로 상향 (6 이하 피해는 1로 경감 / 최대 2회 방어 / 6 초과 시 6 경감 후 소멸)' },
+           up2: { name: '은폐의 잔영', cost: 15, dmg: 0, desc: '기본 신기루 장막 + 장막을 부여받은 대상의 다음 공격 판정 1회에 [유리함] 적용 (피격 여부 무관)' } },
+      c: { name: '과부하 조광', cost: 30, dmg: 0, desc: '동료 직접 공격 적중 시 [성염 기폭: +3 피해] 즉시 폭발 (광역 개별 적용 / 2R부터 라운드 종료 시 과열 +10 지불로 유지) [과열 +30]',
+           up1: { name: '불멸의 잔광', cost: 30, dmg: 0, desc: '과부하 조광 유지 중 치명상 피격 시 1회에 한해 HP 1로 생존' },
+           up2: { name: '작열의 광기', cost: 30, dmg: 0, desc: '추가 피해량을 [+5 성염 기폭]으로 대폭 상향 (단, 대상 아군이 라운드 종료 시 2 피해)' } },
+      d: { name: '환룡의 포효', cost: 50, dmg: 14, desc: '적 전체 고정 14 피해 + 아군 전체 HP 1 회복 (탈진 컴패니언 HP 1 즉시 복귀, 빗나감 시 스침 2) [과열 +50]',
+           up1: { name: '공포의 붕괴', cost: 50, dmg: 14, desc: '적 전체 14 광역 피해 + 적중한 적 전체에게 다음 턴 공격 명중 판정 시 [불리함(2d20 Low)] 부여' },
+           up2: { name: '용위의 억압', cost: 50, dmg: 14, desc: '적 전체 14 광역 피해 + 지정 적 1체에게 1턴간 [행동 제약] 부여 (빗나감 시 스침 2)' } }
     }
   };
 
@@ -6015,38 +6112,38 @@
     '데드로': {
       name: '데드로 펠더', class: '워리어', hp: 13, ac: 12,
       skills: [
-        { name: '승룡 올려베기', baseDmg: 6, desc: '단일 적 고정 6 피해' },
-        { name: '투지 발휘', baseDmg: 3, desc: '단일 적 3 피해 (베어러 노릴 시 유리함). 적중 시 워리어 피격 3 경감 및 베어러 공격을 자신으로 강제 전환' },
+        { name: '승룡 올려베기', baseDmg: 6, desc: '단일 적 고정 6 피해 (직전 라운드 [폭풍 맹격] 시 7 피해 + 명중 유리함 + 적 이번 라운드 공격 굴림에 불리함 강제)' },
+        { name: '투지 발휘', baseDmg: 3, desc: '단일 적 3 피해 (베어러 노릴 시 유리함). 적중 시 워리어 피격 3 경감, [행동 제약] 면역 및 베어러 공격을 자신으로 강제 전환' },
         { name: '폭풍 맹격', baseDmg: 6, desc: '전방 적 전체에게 각각 고정 6 피해 (쿨다운: 3라운드)' }
       ],
-      passive: { name: '불굴의 맹우', desc: '라운드 종료 시 이번 라운드에 워리어를 공격한 모든 적에게 각각 2 피해' }
+      passive: { name: '불굴의 맹우', desc: '라운드 종료 시 이번 라운드에 워리어를 공격 대상으로 지정한 모든 적에게 각각 고정 2 피해' }
     },
     '릴리': {
       name: '릴리 애쉬포드', class: '소서러', hp: 11, ac: 10,
       skills: [
-        { name: '마력 파동', baseDmg: 4, desc: '원거리 단일 적 고정 4 피해' },
-        { name: '생명 흡수진', baseDmg: 1, desc: '판정 없이 공격 대상 적 1 피해 + 아군 HP 2 회복 (또는 릴리 1 자해로 베어러 HP 2 회복)' },
-        { name: '마력 흡수진', baseDmg: 5, desc: '판정 없이 적 5 피해 + 베어러 과열 -15 냉각 + 다음 공격 +3 (쿨다운: 4라운드)' }
+        { name: '마력 파동', baseDmg: 4, desc: '원거리 단일 적 고정 4 피해. 적중 시 대상의 다음 1회 공격 기본 피해량 -2 경감 (타 경감 중첩 가능, 광역기 시 아군 각자 적용, 최소 0)' },
+        { name: '생명 흡수진', baseDmg: 1, desc: '이번 라운드 베어러가 공격한 적 1체 판정 없이 1 피해 + 아군 HP 2 회복 (베어러 비공격 시 릴리 1 자해로 베어러 HP 2 회복)' },
+        { name: '마력 흡수진', baseDmg: 5, desc: '이번 라운드 베어러가 공격한 적 1체 판정 없이 5 피해 + 베어러 과열 -15 냉각 + 베어러 다음 1회 직접 공격 피해 +3 (쿨다운: 4라운드)' }
       ],
       passive: { name: '파동 왜곡', desc: 'A스킬 [마력 파동]의 공격력 경감 수치가 고정 -3으로 강화' }
     },
     '센': {
       name: '시모츠키 센', class: '마검사', hp: 11, ac: 12,
       skills: [
-        { name: '섬광 찌르기', baseDmg: 4, desc: '단일 적 고정 4 피해 + 다른 적 전체 1 피해 (단일 적 대상 시 5 피해)' },
-        { name: '마탄 응축', baseDmg: 1, desc: '적 공격 인텐트 2 경감 + 차징 1스택 획득 + 판정 없이 적 1 피해 (피격 시에도 스택 미소실)' },
-        { name: '일제 사격', baseDmg: 0, desc: '명중 유리함. 차징 스택 소모 (1스택: 7 / 2스택: 13 / 3스택: 20 피해, 3스택 시 베어러 다음 공격 +4 / 쿨다운: 2라운드)' }
+        { name: '섬광 찌르기', baseDmg: 4, desc: '단일 적 고정 4 피해 + 다른 적 전체 1 피해 (단일 적 대상 시 파편 집중으로 5 피해)' },
+        { name: '마탄 응축', baseDmg: 1, desc: '적 공격 인텐트 2 경감 + 차징 1스택 획득 + 판정 없이 적 1 피해 (피격 시에도 차징 스택 미소실)' },
+        { name: '일제 사격', baseDmg: 0, desc: '명중 유리함. 차징 스택 소모 (1스택: 7 / 2스택: 13 / 3스택: 20 피해, 3스택 시 베어러 다음 직접 공격 +4 / 쿨다운: 2라운드)' }
       ],
-      passive: { name: '마력 응집의 극의', desc: '2스택 이상에서 C 시전 시 1스택 잔류' }
+      passive: { name: '마력 응집의 극의', desc: '2스택 이상에서 C 시전 시 차징 1스택 잔류' }
     },
     '마윤겸': {
       name: '마윤겸', class: '리퍼', hp: 10, ac: 12,
       skills: [
-        { name: '사신의 낫질', baseDmg: 4, desc: '단일 적 고정 4 피해 + [지속 피해: 2] 2턴' },
-        { name: '혈맥 절단', baseDmg: 6, desc: '단일 적 고정 6 피해 + 대상의 모든 지속 피해 지속시간 +1턴 연장' },
-        { name: '맹독 주입', baseDmg: 6, desc: '단일 적 고정 6 피해 + 대상에게 1턴간 [행동 제약] 부여 (쿨다운: 3라운드)' }
+        { name: '사신의 낫질', baseDmg: 4, desc: '단일 적 고정 4 피해 + [지속 피해: 2] 2턴 (지속 피해 부재 시 명중 유리함, 직접 타격 처치 시 이번 턴 모든 적 공격 피해 -1 경감)' },
+        { name: '혈맥 절단', baseDmg: 6, desc: '단일 적 고정 6 피해 + 대상에게 걸려 있는 모든 지속 피해 지속 시간 일괄 +1턴 추가' },
+        { name: '맹독 주입', baseDmg: 6, desc: '단일 적 고정 6 피해 (적 인텐트가 광역/충전일 시 명중 유리함). 대상에게 [지속 피해] 있으면 1턴간 [행동 제약] 부여 (쿨다운: 3라운드)' }
       ],
-      passive: { name: '종막의 안식', desc: '리퍼가 부여하는 모든 [지속 피해]의 수치가 턴당 +1 증가' }
+      passive: { name: '종막의 안식', desc: '리퍼가 부여하는 모든 [지속 피해] 수치 턴당 +1 증가' }
     }
   };
 
@@ -6063,6 +6160,15 @@
   let skillTarget = { b: 'bearer', c: 'bearer', compB: 'bearer' };
   let wasInCrisis = false;
   let dedroComboReady = false;
+  let lampOverloadRound = -999;
+
+  /* 이번 라운드 행동 결과 수집 버퍼 및 헬퍼 함수 */
+  let lastRoundActionSummary = [];
+  function recordActionBriefing(text) {
+    if (text) {
+      lastRoundActionSummary.push(text);
+    }
+  }
 
   function proceedToSetup() {
     try {
@@ -6287,7 +6393,7 @@
         bearerName, customBearerName,
         bearerStatuses, compStatuses,
         skillTarget,
-        diceMode, enemyVuln, dedroComboReady,
+        diceMode, enemyVuln, dedroComboReady, lampOverloadRound,
         timestamp: Date.now()
       };
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(data));
@@ -6344,6 +6450,10 @@
       if (data.dedroComboReady !== undefined) {
         dedroComboReady = data.dedroComboReady;
       }
+      if (data.lampOverloadRound !== undefined) {
+        lampOverloadRound = data.lampOverloadRound;
+      }
+
 
       const tScreen = document.getElementById('title-screen');
       const nScreen = document.getElementById('name-screen');
@@ -6605,8 +6715,11 @@
     const compDmgBonusStr = bonusDmg > 0 ? ` (+${bonusDmg} 레벨 가산)` : '';
     const compTipA = (DOM.compTips && DOM.compTips.a) || document.getElementById('comp-tip-a');
     if (compTipA) compTipA.innerHTML = `<div class="tooltip-title">[A] ${c.skills[0].name}${c.skills[0].baseDmg > 0 ? ` (피해: ${c.skills[0].baseDmg}${compDmgBonusStr})` : ''}</div><div>${c.skills[0].desc}</div>`;
+    
+    // 컴패니언 B스킬 설명 누락 방지: 데이터베이스에 정의된 전체 효과를 온전히 출력하고 마검사의 경우 현재 차징 상태만 추가 표기
     const compTipB = (DOM.compTips && DOM.compTips.b) || document.getElementById('comp-tip-b');
-    if (compTipB) compTipB.innerHTML = `<div class="tooltip-title">[B] ${c.skills[1].name}${c.skills[1].baseDmg > 0 ? ` (피해: ${c.skills[1].baseDmg}${compDmgBonusStr})` : ''}</div><div>${(pickedComp === '센') ? `판정 없이 차징 1스택 획득 (현재 ${senCharge}/3).` : c.skills[1].desc}</div>`;
+    if (compTipB) compTipB.innerHTML = `<div class="tooltip-title">[B] ${c.skills[1].name}${c.skills[1].baseDmg > 0 ? ` (피해: ${c.skills[1].baseDmg}${compDmgBonusStr})` : ''}</div><div>${c.skills[1].desc}${(pickedComp === '센') ? `<br><span style="color:#b794f4; font-weight:bold;">[현재 마탄 차징: ${senCharge} / 3]</span>` : ''}</div>`;
+    
     const compTipC = (DOM.compTips && DOM.compTips.c) || document.getElementById('comp-tip-c');
     if (compTipC) compTipC.innerHTML = `<div class="tooltip-title">[C] ${c.skills[2].name}</div><div>${c.skills[2].desc}</div>`;
 
@@ -6660,7 +6773,9 @@
 
       const subEl = document.getElementById(`sub-${tier}`);
       if (subEl) {
-        if (activeInfo.dmg > 0) {
+        if (tier === 'd' && heat < 40) {
+          subEl.innerText = `[잠김] 과열 40 필요 (${heat}/40)`;
+        } else if (activeInfo.dmg > 0) {
           subEl.innerText = `${activeInfo.dmg} 피해 · 과열 +${activeInfo.cost}`;
         } else {
           subEl.innerText = `과열 +${activeInfo.cost} · 전술 기술`;
@@ -6672,11 +6787,13 @@
       if (tipEl) {
         const bonusDmg = curLevel - 1;
         const dmgStr = activeInfo.dmg > 0 ? ` (기본 피해: ${activeInfo.dmg}${bonusDmg > 0 ? ` +${bonusDmg}` : ''})` : '';
+        const reqHeatNotice = (tier === 'd') ? `<div style="font-size:10.5px; color:#f87171; font-weight:800; margin-bottom:4px; border-bottom:1px dashed #ef4444; padding-bottom:3px;">🔒 시전 조건: 현재 과열 40 이상 (현재: ${heat}/100)</div>` : '';
         tipEl.innerHTML = `
           <div class="tooltip-title">
             <span style="color:#fbd38d;">${activeInfo.name}${dmgStr}</span>
             <span style="font-size:10px; color:#38bdf8;">과열 +${activeInfo.cost}</span>
           </div>
+          ${reqHeatNotice}
           <div style="color:#cbd5e1; font-size:11px; line-height:1.55;">${activeInfo.desc}</div>
         `;
       }
@@ -6723,6 +6840,22 @@
       const line2 = document.getElementById(`line-${tier}-2`);
       if (line2) line2.className = (curBranch === 2) ? 'tree-link-line active' : 'tree-link-line';
     });
+
+    /* 룰북 제1장: 3서클(D) 결전기 과열 40 미만 시전 잠금 및 큐 자동 탈락 */
+    const cardD = (DOM.skillCards && DOM.skillCards.d) || document.getElementById('card-bearer-d');
+    if (cardD) {
+      cardD.removeAttribute('title');
+      if (heat < 40) {
+        cardD.classList.add('heat-locked');
+        const qDIdx = actionQueue.findIndex(item => item.actor === 'bearer' && item.key === 'd');
+        if (qDIdx !== -1) {
+          actionQueue.splice(qDIdx, 1);
+          renderQueueUI();
+        }
+      } else {
+        cardD.classList.remove('heat-locked');
+      }
+    }
   }
 
   /* 현재 활성화된 스킬 정보 추출 헬퍼 */
@@ -6815,7 +6948,17 @@
     if (heat <= 0) return;
     const cooled = Math.min(50, heat); heat = Math.max(0, heat - 50);
     playBeep(260, 'sawtooth', 0.25);
+
+    // 룰북 제1장: 강제 벤트 선언 시 등지기 과부하 조광 버프 즉시 소멸
+    const hadOverload = compStatuses.some(s => s.name.includes('과부하 조광') || s.name.includes('불멸의 잔광') || s.name.includes('작열의 광기'));
+    if (hadOverload) {
+      compStatuses = compStatuses.filter(s => !s.name.includes('과부하 조광') && !s.name.includes('불멸의 잔광') && !s.name.includes('작열의 광기'));
+      renderStatuses();
+      log(`💨 <b>[조광 해제]</b> 벤트 급속 냉각으로 인해 동료의 [과부하 조광] 버프가 즉시 해제되었습니다.`);
+    }
+
     log(`💨 <b>[강제 벤트]</b> 증기 배출! 과열 -${cooled} 냉각 (룰북 규정에 따라 이어지는 이번 라운드 적의 첫 단일 공격에 [불리함] 강제)`);
+    recordActionBriefing(`▶ 베어러: [강제 벤트] ➔ 과열 -${cooled} 냉각 (적 다음 공격 1회 불리함)`);
     refreshUI();
     saveSessionState();
   }
@@ -7039,6 +7182,7 @@
     enemyVuln = !enemyVuln;
     document.getElementById('btn-enemy-vuln').className = enemyVuln ? 'btn-dice-mode active-vuln' : 'btn-dice-mode';
     playBeep(enemyVuln ? 680 : 320, 'triangle', 0.08);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
   function updateEnemyVulnUI() {
     const btn = document.getElementById('btn-enemy-vuln');
@@ -7161,6 +7305,7 @@
     }
     updateDiceModeUI();
     playBeep(diceMode === 'adv' ? 620 : (diceMode === 'dis' ? 280 : 440), 'sine', 0.08);
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
   function updateDiceModeUI() {
     document.getElementById('btn-mode-auto').className = (diceMode === 'auto') ? 'btn-dice-mode active-auto' : 'btn-dice-mode';
@@ -7171,6 +7316,13 @@
   function selectBearerSkill(tier, e) {
     if (isExecuting) return;
     if (e) e.stopPropagation();
+
+    /* 룰북 제1장: 3서클(D) 결전기는 현재 과열 40 이상에서만 큐 등록 가능 */
+    if (tier === 'd' && heat < 40) {
+      playBeep(220, 'sawtooth', 0.2);
+      log(`⚠️ <b>[시전 불가]</b> 3서클 결전기는 마력회로가 달아오른 <b>[과열 40 이상]</b> 상태에서만 시전할 수 있습니다! (현재 과열: <b>${heat}/100</b>)`);
+      return;
+    }
 
     /* 베어러/동료 양자 택일이 가능한 스킬만 팝업 표시 (메이지 힐, 등지기 신기루 장막) */
     if ((pickedClass === '메이지' && tier === 'b') || (pickedClass === '등지기' && tier === 'b')) {
@@ -7262,7 +7414,7 @@
 
     const execBtn = DOM.btnExecQueue || document.getElementById('btn-execute-queue');
     if (execBtn) {
-      execBtn.innerText = `⚔ 전술 행동 순차 실행 (선택: ${actionQueue.length} / 2)`;
+      execBtn.innerText = `⚔ 전술 행동 실행 (${actionQueue.length} / 2)`;
       execBtn.disabled = (actionQueue.length === 0 || isExecuting);
     }
   }
@@ -7270,11 +7422,12 @@
   function executeQueuedActions() {
     if (actionQueue.length === 0 || isExecuting) return;
     isExecuting = true;
+    lastRoundActionSummary = []; // 새 라운드 큐 실행 시 이전 라운드 기록 초기화
     document.getElementById('btn-execute-queue').disabled = true;
     const first = actionQueue[0], second = actionQueue[1] || null;
 
     // 다중 액션 및 대형 시퀀스를 고려한 유연한 워치독 타임아웃
-    const watchdogDuration = second ? 12000 : 8500;
+    const watchdogDuration = second ? 16000 : 9500;
     const watchdogTimer = setTimeout(() => {
       if (isExecuting) finishExecution();
     }, watchdogDuration);
@@ -7305,15 +7458,28 @@
     isExecuting = false; actionQueue = []; curRound++;
     if (compCd > 0) compCd--;
     const execBtn = document.getElementById('btn-execute-queue');
-    if (execBtn) execBtn.disabled = true;
+    if (execBtn) {
+      execBtn.innerText = `⚔ 전술 행동 실행 (0 / 2)`;
+      execBtn.disabled = true;
+    }
 
     // [2부] 라운드/턴 종료 시 버프 칩 자동 정산 및 소모
-    // 1) 1턴 한정 피격 경감/엄호 버프 자동 만료
+    // 1) 1턴 한정 피격 경감/엄호/회피 버프 자동 만료
     bearerStatuses = bearerStatuses.filter(s => 
       !s.name.includes('피격 경감') && 
-      s.name !== '🛡️ 원형 방진'
+      s.name !== '🛡️ 쳐내고 베기' &&
+      s.name !== '🛡️ 회전 베기' &&
+      s.name !== '🛡️ 원형 방진' &&
+      s.name !== '🛡️ 백색 철벽' &&
+      s.name !== '🏰 난공불락' &&
+      s.name !== '💨 무형보' &&
+      s.name !== '⚔️ 섬광 반격' &&
+      s.name !== '🔥 화염 장벽'
     );
-    compStatuses = compStatuses.filter(s => s.name !== '🛡️ 육탄 엄호');
+    compStatuses = compStatuses.filter(s => 
+      s.name !== '🛡️ 육탄 엄호' &&
+      s.name !== '🔥 화염 장벽'
+    );
 
     // 2) 메이지 B1 '🌱 재생의 불꽃' 턴 종료 HP +3 추가 회복 처리
     const bRegen = bearerStatuses.find(s => s.name === '🌱 재생의 불꽃');
@@ -7337,6 +7503,19 @@
       compHp = Math.max(0, compHp - 2);
       playBeep(240, 'sawtooth', 0.15);
       log(`🔥 <b>[작열의 광기 반동]</b> 과부하된 성염으로 인해 ${COMPS[pickedComp].name}에게 <b>2</b> 자해 피해 발생! (현재 HP: <b>${compHp}/${compMaxHp}</b>)`);
+    }
+
+    // 4) 등지기 C [과부하 조광] 유지비 (2라운드부터 매 라운드 종료 시 과열 +10 누적 정산)
+    const overloadBuff = compStatuses.find(s => s.name.includes('과부하 조광') || s.name.includes('불멸의 잔광') || s.name.includes('작열의 광기'));
+    if (overloadBuff) {
+      if (hp <= 0 || compHp <= 0) {
+        compStatuses = compStatuses.filter(s => !s.name.includes('과부하 조광') && !s.name.includes('불멸의 잔광') && !s.name.includes('작열의 광기'));
+        log(`💡 <b>[조광 해제]</b> 아군 탈진으로 인해 [과부하 조광] 버프가 해제되었습니다.`);
+      } else if ((curRound - 1) > lampOverloadRound) {
+        heat = Math.min(100, heat + 10);
+        playBeep(420, 'triangle', 0.1);
+        log(`💡 <b>[과부하 조광 유지비]</b> 다음 라운드 유지를 위해 과열 <b>+10</b> 누적 정산 (현재 과열: <b>${heat}/100</b>) <button class="status-add-btn" style="padding:1px 5px; font-size:10px; margin-left:4px;" onclick="compStatuses = compStatuses.filter(s => !s.name.includes('과부하 조광') && !s.name.includes('불멸의 잔광') && !s.name.includes('작열의 광기')); renderStatuses(); log('💡 [과부하 조광] 버프를 수동 해제했습니다.'); refreshUI();">✕ 조광 해제</button>`);
+      }
     }
 
     renderStatuses();
@@ -7411,6 +7590,13 @@
         formulaStr = `2d20 Low (${d1}, ${d2}) ➔ ${raw}`; 
       }
 
+      // 수동 유리/불리 모드 1회 판정 후 자동(auto)으로 즉시 복귀
+      if (diceMode !== 'auto') {
+        diceMode = 'auto';
+        updateDiceModeUI();
+        saveSessionState();
+      }
+
       // [2부] 추가 피해 버프 자동 감지 (릴리 C 마력 순환 +3 / 센 C 3스택 마탄의 잔향 +4)
       const dmgBuffLily = bearerStatuses.find(s => s.name === '🔮 마력 순환');
       const dmgBuffSen = bearerStatuses.find(s => s.name === '⚡ 마탄의 잔향');
@@ -7454,6 +7640,26 @@
           let advConsumedStr = advBuff ? ` <span style="font-size:10px; color:#86efac;">[${advBuff.name} 소모]</span>` : '';
           let grazeNotice = (tier !== 'a') ? ' <span style="font-size:10px; color:#94a3b8;">(빗나감 시 스침 피해 2 보장)</span>' : '';
           log(`🔥 <b>[베어러 공격]</b> ${skillName} ➔ ${formulaStr} + 3 = <b>${total}</b> (명중 시: <b>${finalDmg}</b> 피해${critStr}${vulnStr}${buffDmgStr})${advConsumedStr}${grazeNotice} [과열: ${heat}/100]`);
+
+          let cleanCrit = isCrit ? ' [치명타 +5!]' : '';
+          let cleanVuln = finalDmg > (totalDmg + (isCrit ? 5 : 0)) ? ' [방어 약화 +3!]' : '';
+          let cleanBuff = buffDmgTags.length > 0 ? ` [${buffDmgTags.join(', ')}]` : '';
+          let cleanGraze = (tier !== 'a') ? ' (빗나감 시 스침 2)' : '';
+          recordActionBriefing(`▶ 베어러: [${skillName}] ➔ ${formulaStr} + 3 = ${total} (명중 시: 고정 ${finalDmg} 피해${cleanCrit}${cleanVuln}${cleanBuff})${cleanGraze} | 과열 +${cost}`);
+
+          /* 파이터 B 쳐내고 베기 / 회전 베기: 피격 경감 버프 칩 자동 장착 */
+          if (pickedClass === '파이터' && tier === 'b') {
+            if (up === 2) {
+              applyTargetStatus('bearer', '🛡️ 회전 베기', 'buff', '이번 턴 자신이 받는 피격 피해 4 감소');
+            } else {
+              applyTargetStatus('bearer', '🛡️ 쳐내고 베기', 'buff', '이번 라운드 동안 자신이 받는 피격 피해 3 감소');
+            }
+          }
+
+          /* 검객 B-2 원형 방진: 피격 경감 버프 칩 자동 장착 */
+          if (pickedClass === '검객' && tier === 'b' && up === 2) {
+            applyTargetStatus('bearer', '🛡️ 원형 방진', 'buff', '이번 턴 자신이 받는 피격 피해 4 경감');
+          }
 
           /* 메이지 C-1 화염 장벽: 적 전체 광역 7 피해 공격 판정과 동시에 아군 전체 피격 5 경감 버프 부여 */
           if (pickedClass === '메이지' && tier === 'c' && up === 1) {
@@ -7576,6 +7782,8 @@
           }
         };
 
+        recordActionBriefing(`▶ 베어러: [${skillName}] ➔ 방어막 ${shieldVal} 획득 & 피격 3 경감 (결사의 수호 가능) | 과열 +${cost}`);
+
         if (!appSettings.vfxEnabled) {
           playBeep(520, 'sine', 0.15);
           grantFighterCBuff();
@@ -7612,6 +7820,7 @@
 
           const extraInfo = (up === 1) ? ' (공격한 적에게 고정 5 반격 피해 대기)' : ((up === 2) ? ' (다음 턴 첫 공격 유리함 준비)' : '');
           log(`💨 <b>[검객 회피 전술]</b> ${skillName} 전개 완료! 이번 턴 적 공격 1회 완벽 회피${extraInfo} [과열: ${heat}/100]`);
+          recordActionBriefing(`▶ 베어러: [${skillName}] ➔ 적 공격 1회 완벽 회피${extraInfo} | 과열 +${cost}`);
           refreshUI();
           if (cb) cb();
         };
@@ -7645,6 +7854,8 @@
         };
 
         const upNote = (up === 1) ? ' (다음 행동 턴 종료 시 HP 3 추가 회복 예약)' : ((up === 2) ? ' (대상의 다음 판정에 유리함 부여)' : '');
+        recordActionBriefing(`▶ 베어러: [${skillName}] ➔ ${targetName} HP +${healAmt} 회복${upNote} | 과열 +${cost}`);
+
         if (!appSettings.vfxEnabled) {
           playBeep(640, 'sine', 0.15);
           grantMageBBuff();
@@ -7685,6 +7896,7 @@
             applyTargetStatus(target, '✨ 다음 공격 유리함', 'buff', '[은폐의 잔영] 대상의 다음 공격 판정 1회에 [유리함] 적용');
           }
           log(`🛡️ <b>[${skillName}]</b> ${targetName}에게 <b>[${chipName}]</b> 장막 버프가 장착되었습니다!${up === 2 ? ' (✨ 다음 공격 유리함 동시 부여)' : ''} [과열: ${heat}/100]`);
+          recordActionBriefing(`▶ 베어러: [${skillName}] ➔ ${targetName}에게 [${chipName}] 장막 부여${up === 2 ? ' (✨ 다음 공격 유리함)' : ''} | 과열 +${cost}`);
           refreshUI();
           if (cb) cb();
         };
@@ -7697,6 +7909,7 @@
         playLamplighterB(up, target, onFxDone);
       } else if (pickedClass === '등지기' && tier === 'c') {
         /* [1부] 등지기 C: 과부하 조광 동료 전용 버프 칩 자동 장착 */
+        lampOverloadRound = curRound;
         const target = 'comp';
         const targetName = COMPS[pickedComp].name;
 
@@ -7718,6 +7931,7 @@
         const onFxDone = () => {
           applyTargetStatus(target, chipName, 'buff', `[${skillName}] ${chipDesc}`);
           log(`💡 <b>[${skillName}]</b> ${targetName}에게 <b>[${chipName}]</b> 버프가 장착되었습니다! [과열: ${heat}/100]`);
+          recordActionBriefing(`▶ 베어러: [${skillName}] ➔ ${targetName}에게 [${chipName}] 부여 (직접 타격 시 성염 기폭) | 과열 +${cost}`);
           refreshUI();
           if (cb) cb();
         };
@@ -7733,6 +7947,7 @@
         document.getElementById('dice-formula-display').innerText = `${skillName} (발동 완료)`;
         playBeep(560, 'sine', 0.15);
         log(`🛡️ <b>[베어러 전술]</b> ${skillName} 전개 완료! [과열: ${heat}/100]`);
+        recordActionBriefing(`▶ 베어러: [${skillName}] ➔ 전술 효과 발동 | 과열 +${cost}`);
         refreshUI();
         if (cb) cb();
       }
@@ -7751,11 +7966,11 @@
       else compCd = 3;
 
       if (pickedComp === '데드로') {
-        dedroComboReady = true;
+        dedroComboReady = curRound;
       }
     }
 
-    let isDedroCombo = (pickedComp === '데드로' && tag === 'A' && dedroComboReady);
+    let isDedroCombo = (pickedComp === '데드로' && tag === 'A' && dedroComboReady === curRound - 1);
     let baseDmg = isDedroCombo ? 7 : skillObj.baseDmg;
     let bonusDmg = (curLevel - 1);
     let estDmg = (baseDmg > 0) ? (baseDmg + bonusDmg) : 0;
@@ -7823,8 +8038,10 @@
       const onFxDone = () => {
         if (tag === 'B') {
           log(`🤝 <b>[생명 흡수진]</b> 판정 없이 적 1 피해 + ${(target === 'bearer' ? bearerName : '릴리')} HP <b>+2</b> 회복!`);
+          recordActionBriefing(`▶ ${c.name}: [생명 흡수진] ➔ 확정 적 1 피해 & ${(target === 'bearer' ? bearerName : '릴리')} HP +2 회복`);
         } else {
           log(`🔮 <b>[마력 흡수진]</b> 판정 없이 적 5 피해 + 베어러 과열 <b>-15</b> 냉각 및 베어러 다음 직접 공격 <b>+3</b> 추가 버프 칩 장착!`);
+          recordActionBriefing(`▶ ${c.name}: [마력 흡수진] ➔ 확정 적 5 피해 & 베어러 과열 -15 냉각 & 다음 공격 +3 버프 [쿨 4R]`);
         }
         if (cb) cb();
       };
@@ -7851,13 +8068,16 @@
       estDmg += overloadDmg;
     }
 
-    // 주사위 판정 (센 C스킬 또는 유리함 버프 보유 시 유리함 적용)
+    // 주사위 판정 (수동 유리/불리 모드, 센 C스킬 또는 유리함 버프 보유 시 적용)
     let d1 = Math.floor(Math.random() * 20) + 1;
     let d2 = Math.floor(Math.random() * 20) + 1;
+    let isAdv = (diceMode === 'adv') || (pickedComp === '센' && tag === 'C') || isDedroCombo || Boolean(compAdvBuff);
+    let isDis = (diceMode === 'dis');
+
     let raw = d1;
     let formulaStr = `1d20(${d1})`;
 
-    if ((pickedComp === '센' && tag === 'C') || isDedroCombo || compAdvBuff) {
+    if (isAdv) {
       raw = Math.max(d1, d2);
       const compAdvReason = isDedroCombo ? ' [폭풍 맹격 연계]' : (compAdvBuff ? ` [${compAdvBuff.name} 소모]` : '');
       formulaStr = `2d20 High (${d1}, ${d2}) ➔ ${raw}${compAdvReason}`;
@@ -7867,6 +8087,16 @@
         renderStatuses();
         saveSessionState();
       }
+    } else if (isDis) {
+      raw = Math.min(d1, d2);
+      formulaStr = `2d20 Low (${d1}, ${d2}) ➔ ${raw}`;
+    }
+
+    // 수동 유리/불리 모드 1회 판정 후 자동(auto)으로 즉시 복귀
+    if (diceMode !== 'auto') {
+      diceMode = 'auto';
+      updateDiceModeUI();
+      saveSessionState();
     }
 
     let total = raw + 2;
@@ -7889,8 +8119,24 @@
         let comboNote = isDedroCombo ? ' <b style="color:#fbd38d;">[폭풍 맹격 연계 적중: 7 피해 & 유리함]</b>' : '';
         log(`🤝 <b>[동료 행동]</b> ${c.name}의 ${skillObj.name}${stackNote}${comboNote} ➔ ${formulaStr} + 2 = <b>${total}</b> ${estDmg > 0 ? `(피해: <b>${estDmg}</b>${critStr}${overloadStr})` : ''}`);
         
+        let cleanCrit = isCrit ? ' [치명타 +5!]' : '';
+        let cleanOverload = overloadDmg > 0 ? ` [성염 기폭 +${overloadDmg}!]` : '';
+        let cleanStack = (pickedComp === '센' && tag === 'C') ? ` [마탄 ${senUsedStacks}스택]` : '';
+        let cleanCombo = isDedroCombo ? ' [폭풍 맹격 연계]' : '';
+        let cleanExtra = '';
+        if (pickedComp === '마윤겸' && tag === 'A') cleanExtra = ' (+ [지속 피해: 2] 2턴)';
+        if (pickedComp === '마윤겸' && tag === 'B') cleanExtra = ' (지속 피해 +1턴 연장)';
+        if (pickedComp === '마윤겸' && tag === 'C') cleanExtra = ' (+ [행동 제약] 1턴) [쿨 3R]';
+        if (pickedComp === '데드로' && tag === 'B') cleanExtra = ' (워리어 피격 3 경감 & 베어러 공격 강제 전환)';
+        if (pickedComp === '데드로' && tag === 'C') cleanExtra = ' (적 전체 6 광역 피해) [쿨 3R]';
+        if (pickedComp === '센' && tag === 'B') cleanExtra = ' (인텐트 2 경감 & 차징 +1 & 1 피해)';
+        if (pickedComp === '센' && tag === 'C') cleanExtra = ` [쿨 2R]${senUsedStacks === 3 ? ' (베어러 다음 공격 +4)' : ''}`;
+        if (pickedComp === '릴리' && tag === 'A') cleanExtra = ' (적 다음 공격력 -2 경감)';
+
+        recordActionBriefing(`▶ ${c.name}: [${skillObj.name}] ➔ ${formulaStr} + 2 = ${total} ${estDmg > 0 ? `(고정 ${estDmg} 피해${cleanCrit}${cleanOverload})` : ''}${cleanStack}${cleanCombo}${cleanExtra}`);
+
         if (isDedroCombo) {
-          dedroComboReady = false;
+          dedroComboReady = 0;
         }
 
         refreshUI();
@@ -7910,11 +8156,15 @@
     if (isExecuting) return;
     clearAllSkillTimers();
     actionQueue = [];
+    lastRoundActionSummary = []; // 전투 종료 시 행동 요약 초기화
     curRound = 1;
     compCd = 0;
-    dedroComboReady = false;
+    dedroComboReady = 0;
+    lampOverloadRound = -999;
     enemyVuln = false;
     updateEnemyVulnUI();
+    diceMode = 'auto';
+    updateDiceModeUI();
 
     /* 룰북 v2.19 규정 반영 1: 전투 종료 후 자연 냉각 (과열 0 리셋) */
     heat = 0;
@@ -7966,6 +8216,13 @@
       modeText = '불리함';
     }
 
+    // 수동 유리/불리 모드 1회 판정 후 자동(auto)으로 즉시 복귀
+    if (diceMode !== 'auto') {
+      diceMode = 'auto';
+      updateDiceModeUI();
+      saveSessionState();
+    }
+
     animateDiceAdvanced(raw, 3, `비전투 ${modeText}`, formulaStr, () => {
       log(`🎲 <b>[비전투 판정 (${modeText})]</b> ➔ ${formulaStr} | 특기 부합(+3): <b>${raw + 3}</b> · 일반 행동(+0): <b>${raw}</b> · 동료 단독(+2): <b>${raw + 2}</b>`);
     });
@@ -8015,8 +8272,17 @@
     const cStatusStr = compStatuses.length > 0 ? compStatuses.map(s => `[${s.name}]`).join(' ') : '정상';
     const cdStr = compCd > 0 ? `${compCd}R 대기` : '사용 가능';
 
+    let actionBriefingSection = '【 이번 라운드 행동 결과 】\n';
+    if (lastRoundActionSummary && lastRoundActionSummary.length > 0) {
+      actionBriefingSection += lastRoundActionSummary.join('\n');
+    } else {
+      actionBriefingSection += '(행동 선언 대기 중)';
+    }
+
     const turnBriefingText = 
-`【 턴 현황 】
+`${actionBriefingSection}
+
+【 파티 상태 현황 】
 ▶ 베어러: ${bearerName} (${pickedClass} Lv.${curLevel}) | HP: ${hp}/${maxHp} | 방어막: ${shield}/15 | 과열: ${heat}/100 | 상태: ${bStatusStr}
 ▶ 동료: ${c.name} (${c.class}) | HP: ${compHp}/${compMaxHp} | C쿨: ${cdStr} | 상태: ${cStatusStr}
 ▶ 물자: 휘석 ${pyrite}개 | 영약 ${potion}병 | 생환 스택: ${deathStack}`;
