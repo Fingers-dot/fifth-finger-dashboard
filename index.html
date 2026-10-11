@@ -4,8 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>다섯째 손가락 - 플레이어 전용 웹 대시보드 v2.23</title>
+<!-- 첫 화면 핵심 일러스트 브라우저 우선 다운로드 힌트 -->
+<link rel="preload" as="image" href="assets/artis.png">
+<link rel="preload" as="image" href="assets/fighter.png">
+<link rel="preload" as="image" href="assets/dedro.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
+
   :root {
     --bg-main: #0a0b0e;
     --panel-bg: #12141c;
@@ -1694,6 +1699,22 @@
 </div>
 
 <script>
+  /* [최적화] 탭 전환용 핵심 UI 일러스트 12종 브라우저 메모리 사전 캐싱 (지연 시간 0초화) */
+  const PRELOAD_IMAGE_URLS = [
+    'assets/artis.png', 'assets/tison.png', 'assets/karn.png', 'assets/renig.png',
+    'assets/fighter.png', 'assets/swordsman.png', 'assets/mage.png', 'assets/lamplighter.png',
+    'assets/dedro.png', 'assets/lily.png', 'assets/sen.png', 'assets/mayungeom.png'
+  ];
+  const imagePreloadCache = {};
+  function preloadCoreImages() {
+    PRELOAD_IMAGE_URLS.forEach(url => {
+      const img = new Image();
+      img.src = url;
+      imagePreloadCache[url] = img;
+    });
+  }
+  preloadCoreImages();
+
   /* 0. 통합 오디오 엔진 & 오디오 풀링 (메모리 누수 및 GC 랙 제거) */
   const audioCtx = (window.AudioContext || window.webkitAudioContext) ? new (window.AudioContext || window.webkitAudioContext)() : null;
   let masterGainNode = null;
@@ -1928,9 +1949,13 @@
 
     alignFxCanvasSync();
   }
-  window.addEventListener('DOMContentLoaded', cacheDOMElements);
+  window.addEventListener('DOMContentLoaded', () => {
+    cacheDOMElements();
+    preloadCoreImages();
+  });
 
   function updateDiceCoordinates() {
+
     const panel = DOM.dicePanel || document.getElementById('dice-panel');
     const numDisplay = DOM.diceTotal || document.getElementById('dice-total-display');
     if (!panel || !numDisplay) return;
@@ -2546,18 +2571,30 @@
     return c;
   }
 
+  // 경로 탐색 성공 이력을 기억하여 404 요청 낭비 방지
+  let verifiedAssetPrefix = null;
   function loadSpriteAsset(urlCandidates, callback) {
+    // 이미 검증된 경로 prefix가 있다면 최우선 시도
+    let orderedCandidates = [...urlCandidates];
+    if (verifiedAssetPrefix) {
+      orderedCandidates.sort((a, b) => a.startsWith(verifiedAssetPrefix) ? -1 : 1);
+    }
+
     function tryLoad(idx) {
-      if (idx >= urlCandidates.length) {
-        console.warn('[VFX Asset] 스프라이트 로드 실패:', urlCandidates[0]);
+      if (idx >= orderedCandidates.length) {
+        console.warn('[VFX Asset] 스프라이트 로드 실패:', orderedCandidates[0]);
         return;
       }
       const img = new Image();
       img.onload = () => {
-        callback(img, urlCandidates[idx]);
+        if (!verifiedAssetPrefix) {
+          if (orderedCandidates[idx].startsWith('assets/effects/')) verifiedAssetPrefix = 'assets/effects/';
+          else if (orderedCandidates[idx].startsWith('assets/')) verifiedAssetPrefix = 'assets/';
+        }
+        callback(img, orderedCandidates[idx]);
       };
       img.onerror = () => tryLoad(idx + 1);
-      img.src = urlCandidates[idx];
+      img.src = orderedCandidates[idx];
     }
     tryLoad(0);
   }
