@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>다섯째 손가락 - 마스터(GM) 전술 컨트롤러 v2.24 (실시간 연동판)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+  :root {
+    --bg-main: #0a0b0e;
+    --panel-bg: #12141c;
+    --panel-inner: #181b26;
+    --panel-border: #282d3e;
+    --red-blood: #ef4444;
+    --gold-pyrite: #fbd38d;
+    --blue-shield: #38bdf8;
+  }
+  * { box-sizing: border-box; word-break: keep-all; font-variant-numeric: tabular-nums; }
+  body {
+    background-color: var(--bg-main);
+    color: #e2e8f0;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 16px; margin: 0; display: flex; justify-content: center;
+  }
+  .app-container { width: 100%; max-width: 1160px; display: flex; flex-direction: column; gap: 14px; }
+  .panel-box {
+    background: var(--panel-inner); border: 1.5px solid var(--panel-border);
+    border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .btn-action {
+    background: #1e293b; border: 1px solid #3e4c69; color: #e2e8f0;
+    font-weight: 800; border-radius: 6px; padding: 3px 8px; font-size: 11px; transition: all 0.15s ease;
+    cursor: pointer; user-select: none;
+  }
+  .btn-action:hover { background: #334155; border-color: #38bdf8; color: #fff; }
+  .btn-primary {
+    background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 100%);
+    border: 1.5px solid #ef4444; color: #fff; font-weight: 900; cursor: pointer;
+  }
+  .btn-primary:hover { background: linear-gradient(135deg, #991b1b 0%, #dc2626 100%); box-shadow: 0 0 12px rgba(239, 68, 68, 0.4); }
+  .enemy-card {
+    background: #0f131d; border: 1.5px solid #252f44; border-radius: 8px;
+    padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; position: relative;
+    transition: all 0.2s ease;
+  }
+  .enemy-card.dead { opacity: 0.45; filter: grayscale(80%); border-style: dashed; }
+  .intent-box {
+    background: #080a10; border: 1.5px solid #252f44; border-radius: 8px;
+    padding: 10px; font-family: monospace; font-size: 12px; line-height: 1.55;
+    color: #f1f5f9; white-space: pre-wrap;
+  }
+  .dot-chip {
+    display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 800;
+    padding: 2px 6px; border-radius: 4px; border: 1px solid #ec4899; background: #381228; color: #fbcfe8;
+  }
+  .phase2-modal {
+    display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+    z-index: 1000; justify-content: center; align-items: center; padding: 20px;
+  }
+  .phase2-modal.active { display: flex; }
+  .phase2-content {
+    background: #181114; border: 2px solid #ef4444; border-radius: 12px;
+    max-width: 580px; width: 100%; padding: 20px; display: flex; flex-direction: column; gap: 12px;
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.5);
+  }
+  .toast-container {
+    position: fixed; bottom: 20px; right: 20px; z-index: 2000;
+    display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+  }
+  .toast-msg {
+    background: rgba(18, 22, 34, 0.96); border: 1.5px solid #38bdf8; border-radius: 8px;
+    padding: 10px 14px; font-size: 11.5px; color: #f1f5f9; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
+    animation: toastIn 0.25s ease-out; pointer-events: auto; display: flex; align-items: center; gap: 8px;
+    max-width: 380px;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .gm-gauge-track {
+    position: relative; width: 100%; height: 15px; background: #0b0d14;
+    border: 1px solid #232a3d; border-radius: 4px; overflow: hidden;
+  }
+  .gm-gauge-fill { height: 100%; transition: width 0.25s ease, background 0.25s ease; }
+  .gm-gauge-hp { background: linear-gradient(90deg, #991b1b 0%, #ef4444 100%); }
+  .gm-gauge-shield { background: linear-gradient(90deg, #d97706 0%, #facc15 100%); }
+  .gm-gauge-heat-stable { background: linear-gradient(90deg, #14b8a6 0%, #2dd4bf 100%); }
+  .gm-gauge-heat-warn { background: linear-gradient(90deg, #d97706 0%, #f59e0b 100%); box-shadow: 0 0 10px rgba(245, 158, 11, 0.5); }
+  .gm-gauge-heat-crit { background: linear-gradient(90deg, #b91c1c 0%, #ef4444 100%); box-shadow: 0 0 12px rgba(239, 68, 68, 0.75); }
+  .gm-gauge-label {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 900; color: #f8fafc; text-shadow: 0 1px 3px rgba(0,0,0,0.95);
+    pointer-events: none; letter-spacing: 0.2px;
+  }
+  .gm-log-box {
+    max-height: 200px; min-height: 100px; overflow-y: auto;
+    background: #080a10; border: 1.5px solid #1e2638; border-radius: 6px;
+    padding: 7px 9px; display: flex; flex-direction: column; gap: 4px;
+  }
+  .gm-log-box::-webkit-scrollbar { width: 4px; }
+  .gm-log-box::-webkit-scrollbar-thumb { background: #28334a; border-radius: 2px; }
+  .gm-log-item {
+    font-size: 11px; line-height: 1.45; color: #cbd5e1; word-break: break-word;
+    background: rgba(18, 22, 34, 0.75); padding: 4px 7px; border-radius: 4px;
+    border-left: 2.5px solid #38bdf8;
+  }
+  .gm-log-item.player { border-left-color: #38bdf8; background: rgba(12, 74, 110, 0.25); }
+  .gm-log-item.enemy { border-left-color: #ef4444; background: rgba(127, 29, 29, 0.25); }
+  .gm-log-item.round { border-left-color: #f59e0b; background: rgba(120, 53, 15, 0.3); color: #fde68a; }
+  .gm-log-item.system { border-left-color: #10b981; background: rgba(6, 78, 59, 0.25); }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- 상단 헤더: 마스터 컨트롤러 타이틀 + 온라인 방 연결 안내 + 핵심 액션 -->
+  <div class="panel-box" style="flex-direction:row; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+    <div>
+      <div style="font-size:16px; font-weight:900; color:#ef4444; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+        <span>💀 마스터 전술 컨트롤러 v2.24</span>
+        <span style="font-size:10px; background:#1e3a5f; border:1px solid #38bdf8; color:#7dd3fc; padding:1px 6px; border-radius:10px;">[최종 배포본] 공식 DB 100% 동기화</span>
+      </div>
+      <div style="font-size:11px; color:#94a3b8; margin-top:2px;">단일 대미지 디스패처 · 생애주기 무결성 · 에너미 16종 전수 탑재 · 스마트 AI 인텐트</div>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-left:auto;">
+      <!-- 온라인 P2P 연결 안내 (온라인 방 관련 버튼 좌측 배치) -->
+      <div style="background:#0d131f; border:1px solid #263147; border-radius:8px; padding:6px 11px; font-size:11px; color:#94a3b8; line-height:1.45; max-width:340px;">
+        💡 우측 <b style="color:#93c5fd;">[🌐 온라인 방 열기 (P2P)]</b>를 눌러 발급된 4자리 방 코드를 플레이어 대시보드에 입력하면(같은 PC·다른 PC 모두 가능) 실시간 연결됩니다.
+      </div>
+      <div style="display:flex; flex-direction:column; align-items:stretch; gap:5px; min-width:155px;">
+        <button type="button" id="gm-conn-status-badge" style="font-size:11px; font-weight:900; padding:4px 10px; border-radius:6px; background:#1e293b; border:1px solid #475569; color:#94a3b8; text-align:center; cursor:default; transition:all 0.15s ease;" onclick="copyGmRoomCode()" title="방이 개설되면 클릭하여 방 코드를 복사합니다">⚪ 온라인 방 미개설</button>
+        <button class="btn-action" id="btn-gm-open-room" style="background:#172554; border-color:#3b82f6; color:#93c5fd; padding:4px 10px; text-align:center;" onclick="openGmPeerRoom()">🌐 온라인 방 열기 (P2P)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 헤더 아래: 대시보드 실시간 브릿지 (왼편: 4대 파티 물자 정사각형 박스 나란히 / 오른편: 베어러 & 동료 실시간 상태) -->
+  <div class="panel-box" id="gm-sync-monitor-bar" style="background:linear-gradient(90deg, #0d1526 0%, #131c31 50%, #0d1526 100%); border-color:#38bdf8; padding:10px 14px; gap:8px;">
+    <!-- 1행: 온라인 연결 상태 및 즉시 푸시 -->
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; width:100%; justify-content:space-between;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-size:12px; font-weight:900; color:#7dd3fc;">📡 대시보드 실시간 브릿지:</span>
+          <button class="btn-action" style="background:#064e3b; border-color:#10b981; color:#6ee7b7; padding:3px 10px;" onclick="broadcastGmStateToPlayer(true)" title="현재 적 및 파티 물자 상태를 플레이어 대시보드로 즉시 전송합니다">🔄 적·물자 즉시 푸시</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2행: 좌측 4개 정사각형 물자 박스 + 우측 베어러 & 동료 실시간 상태 표시 칸 -->
+    <div style="display:grid; grid-template-columns: 440px minmax(0, 1fr); gap:10px; align-items:stretch;">
+      <!-- 왼편: 장미 휘석 · 회복 영약 · 생환 스택 · 막간의 교감 정사각형 박스 4개 나란히 배치 -->
+      <div style="display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap:8px; background:#080c15; border:1px solid #1e293b; border-radius:8px; padding:8px;">
+        <!-- 장미 휘석 (정사각형 박스) -->
+        <div style="aspect-ratio: 1 / 1; display:flex; flex-direction:column; align-items:center; justify-content:space-between; background:#111622; border:1px solid #283248; border-radius:8px; padding:7px 5px; text-align:center;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
+            <span style="font-size:16px; line-height:1.1;">💎</span>
+            <div style="font-size:10.5px; font-weight:900; color:#fbd38d; margin-top:2px;">장미 휘석</div>
+            <div style="font-size:9px; color:#64748b;">화폐·열기전도</div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:3px; width:100%;">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('pyrite', -1)">-</button>
+            <input type="number" id="stage-pyrite" value="0" min="0" oninput="onManualGmResourceEdit()" class="bg-gray-950 border border-amber-700/60 rounded px-1 py-0.5 text-xs font-black text-amber-300 outline-none w-10 text-center">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('pyrite', 1)">+</button>
+          </div>
+        </div>
+
+        <!-- 회복 영약 (정사각형 박스) -->
+        <div style="aspect-ratio: 1 / 1; display:flex; flex-direction:column; align-items:center; justify-content:space-between; background:#111622; border:1px solid #283248; border-radius:8px; padding:7px 5px; text-align:center;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
+            <span style="font-size:16px; line-height:1.1;">🧪</span>
+            <div style="font-size:10.5px; font-weight:900; color:#68d391; margin-top:2px;">회복 영약</div>
+            <div style="font-size:9px; color:#64748b;">HP+5·부활</div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:3px; width:100%;">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('potion', -1)">-</button>
+            <input type="number" id="stage-potion" value="1" min="0" oninput="onManualGmResourceEdit()" class="bg-gray-950 border border-emerald-700/60 rounded px-1 py-0.5 text-xs font-black text-emerald-300 outline-none w-10 text-center">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('potion', 1)">+</button>
+          </div>
+        </div>
+
+        <!-- 생환 스택 (정사각형 박스) -->
+        <div style="aspect-ratio: 1 / 1; display:flex; flex-direction:column; align-items:center; justify-content:space-between; background:#161118; border:1px solid #3f2230; border-radius:8px; padding:7px 5px; text-align:center;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
+            <span style="font-size:16px; line-height:1.1;">🩸</span>
+            <div style="font-size:10.5px; font-weight:900; color:#fca5a5; margin-top:2px;">생환 스택</div>
+            <div style="font-size:9px; color:#94a3b8;">사망 기상 누적</div>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:3px; width:100%;">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('deathStack', -1)">-</button>
+            <input type="number" id="stage-death-stack" value="0" min="0" oninput="onManualGmResourceEdit()" class="bg-gray-950 border border-rose-700/60 rounded px-1 py-0.5 text-xs font-black text-rose-300 outline-none w-10 text-center">
+            <button class="btn-action" style="padding:1px 5px;" onclick="adjGmResource('deathStack', 1)">+</button>
+          </div>
+        </div>
+
+        <!-- 막간의 교감 불꽃 (정사각형 박스) -->
+        <div style="aspect-ratio: 1 / 1; display:flex; flex-direction:column; align-items:center; justify-content:space-between; background:#111622; border:1px solid #283248; border-radius:8px; padding:7px 5px; text-align:center;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:1px;">
+            <span style="font-size:16px; line-height:1.1;">🔥</span>
+            <div style="font-size:10.5px; font-weight:900; color:#7dd3fc; margin-top:2px;">막간의 교감</div>
+            <div id="gm-communion-sub" style="font-size:9px; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:90px;">휴식·교감 불꽃</div>
+          </div>
+          <select id="stage-communion" onchange="onManualGmResourceEdit()" class="bg-gray-950 border border-sky-700/60 rounded px-0.5 py-1 text-[10px] font-bold text-sky-200 outline-none text-center" style="width:100%;">
+            <option value="none">미보유</option>
+            <option value="shine">비추는 불꽃</option>
+            <option value="burn">태우는 불꽃</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 오른편: 베어러 & 동료 실시간 상태 표시 칸 (2열 대시보드형 게이지) -->
+      <div id="gm-party-status-strip" style="background:#090d16; border:1px solid #1e293b; border-radius:8px; padding:9px 12px; font-size:11px; color:#94a3b8; display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:14px; align-items:start;">
+      </div>
+    </div>
+  </div>
+
+  <!-- 메인 2열 그리드: 좌측 적 슬롯 목록 / 우측 주사위 박스 + 전체 인텐트 브리핑 -->
+  <div style="display:grid; grid-template-columns: 1.45fr 1fr; gap:14px; align-items:start;">
+    <!-- 좌측: 조우 구역 바 + 적 슬롯 관리 영역 -->
+    <div class="panel-box">
+      <!-- [이동 완료] 조우 구역 입력창 & 조우 초기화 바 (조우 에너미들 바로 위) -->
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#0c101a; border:1px solid #263147; border-radius:8px; padding:7px 10px; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:7px; flex:1; min-width:220px;">
+          <span style="font-size:11.5px; font-weight:900; color:#fbd38d; white-space:nowrap;">📍 현재 구역:</span>
+          <input type="text" id="stage-name" value="물레울 마을 피난민 천막촌" oninput="saveGmSession(); updateAll()" class="bg-gray-900 border border-gray-700 rounded px-2.5 py-1 text-xs font-bold text-amber-200 outline-none" style="flex:1; min-width:160px;">
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <button class="btn-action" style="background:#221518; border-color:#7f1d1d; color:#fca5a5; padding:4px 10px;" onclick="resetToScene1Preset()" title="1장 씬 1 공식 초기 세팅으로 리셋">🔄 조우 초기화</button>
+        </div>
+      </div>
+
+      <!-- 조우 에너미 목록 헤더 & 스마트 AI 컨트롤 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #252f44; padding-bottom:6px; padding-top:2px; flex-wrap:wrap; gap:6px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:13px; font-weight:900; color:#fbd38d;">⚔️ 조우 에너미 목록</span>
+          <span style="font-size:11px; color:#94a3b8;" id="enemy-count-label">(0체)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <select id="gm-ai-mode-select" class="bg-gray-900 border border-sky-700 rounded px-2 py-1 text-xs text-sky-200 font-bold outline-none" onchange="assignSmartTargetsAndIntents(false)" title="스마트 인텐트 & 타겟 자동 생성 AI 성향">
+            <option value="balanced">⚖️ 스마트 AI: 균형 배분 (기본)</option>
+            <option value="weakness">🩸 스마트 AI: 빈틈·약자 집중</option>
+            <option value="random">🎲 스마트 AI: 완전 무작위</option>
+          </select>
+          <button class="btn-action" style="background:#3b0764; border-color:#c084fc; color:#f3e8ff; padding:4px 9px;" onclick="assignSmartTargetsAndIntents(true)" title="살아있는 적들의 패턴과 목표 대상을 전술 AI로 즉시 재배정합니다">🧠 인텐트·타겟 자동 배정</button>
+        </div>
+      </div>
+
+      <!-- 에너미 카드 컨테이너 -->
+      <div id="enemy-cards-container" style="display:flex; flex-direction:column; gap:10px; max-height:720px; overflow-y:auto; padding-right:4px;">
+        <!-- 동적 슬롯 렌더링 -->
+      </div>
+
+      <!-- 에너미 목록 하단: 디폴트 에너미(바람 도마뱀) 추가 버튼 -->
+      <button type="button" class="btn-action" style="width:100%; padding:8px 12px; background:#111827; border:1.5px dashed #38bdf8; border-radius:8px; color:#7dd3fc; font-size:13px; font-weight:900; display:flex; justify-content:center; align-items:center; gap:6px; margin-top:2px;" onclick="addEnemySlot('lizard')" title="클릭하여 기본 에너미(바람 도마뱀) 슬롯을 추가합니다">
+        <span style="font-size:16px; line-height:1;">＋</span>
+        <span>에너미 추가 (기본: 바람 도마뱀)</span>
+      </button>
+    </div>
+
+    <!-- 우측 컬럼: 상단 라운드 종료 정산 + 하단 접이식 [인텐트 양식 복사 / 수동 다이스 굴림] 스크롤 박스 -->
+    <div style="display:flex; flex-direction:column; gap:14px; position:sticky; top:16px;">
+      <!-- 우측 상단: 라운드 종료 정산 (메인 자동화 컨트롤러) -->
+      <div class="panel-box" style="background:#131722; border-color:#2b354d; padding:12px 14px; gap:8px;">
+        <div style="font-size:12.5px; font-weight:900; color:#7dd3fc; display:flex; justify-content:space-between; align-items:center;">
+          <span>⏱️ 라운드 종료 정산</span>
+          <span style="font-size:10.5px; color:#94a3b8; font-weight:normal;">엔진 단일 파이프라인</span>
+        </div>
+        <div style="display:flex; gap:6px; align-items:stretch;">
+          <button class="btn-action" style="flex:1; background:linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%); border-color:#f87171; color:#fff; font-weight:900; padding:8px 6px; font-size:11.5px;" onclick="executeAllEnemyAttacks()">
+            ⚔️ 전체 공격 실행(대시보드 연동)
+          </button>
+          <button class="btn-action" id="btn-gm-undo" style="background:#451a03; border-color:#f59e0b; color:#fde68a; opacity:0.45; padding:8px 10px; font-weight:900; white-space:nowrap; flex-shrink:0;" onclick="undoLastGmState()" disabled title="플레이어 타격 또는 라운드 정산 직전 상태로 되돌립니다">
+            ↩ 되돌리기
+          </button>
+        </div>
+        <button class="btn-action" style="width:100%; background:linear-gradient(135deg, #1e3a5f 0%, #0369a1 100%); border-color:#38bdf8; color:#fff; font-weight:900; padding:8px; font-size:11.5px;" onclick="resolveRoundEnd()">
+          ⚡ 라운드 종료 (지속피해 정산 & 다음 인텐트 자동생성)
+        </button>
+        <button class="btn-action" style="width:100%; background:linear-gradient(135deg, #0f2942 0%, #1e3a5f 100%); border-color:#38bdf8; color:#7dd3fc; font-weight:900; padding:7px 12px; font-size:11.5px;" onclick="endGmCombat()" title="교전을 종료하고 적 상태이상·방어막 및 플레이어 대시보드의 과열/방어막을 초기화합니다">
+          ❄️ 전투 종료 (대시보드 연동)
+        </button>
+        <div style="font-size:10.5px; color:#94a3b8; line-height:1.4;">
+          단일 디스패처 연동: <b>① 방어막 무시 DoT HP 직격</b> ➔ <b>② 2페이즈 각성 시 1턴 보존</b> ➔ <b>③ 턴 차감 및 패턴 순환</b>이 규칙에 맞게 실행됩니다.
+        </div>
+      </div>
+
+      <!-- 우측 중간: 실시간 전투 액션 로그 패널 -->
+      <div class="panel-box" style="background:#111520; border-color:#2a3449; padding:10px 12px; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:12px; font-weight:900; color:#7dd3fc; display:flex; align-items:center; gap:5px;">
+            <span>📜</span>
+            <span>전투 로그</span>
+          </span>
+          <button class="btn-action" style="padding:1px 7px; font-size:10px; background:#1e293b; border-color:#475569; color:#94a3b8;" onclick="clearGmLog()" title="전투 로그를 모두 비웁니다">비우기</button>
+        </div>
+        <div id="gm-log-box" class="gm-log-box">
+          <div style="color:#64748b; font-size:10.5px; text-align:center; padding:16px 0;">전투 액션 로그가 여기에 기록됩니다.</div>
+        </div>
+      </div>
+
+      <!-- 우측 하단: [인텐트 양식 복사 / 수동 다이스 굴림] 접이식 스크롤 아코디언 -->
+      <div class="panel-box" style="padding:0; overflow:hidden; border-color:#3b4866; background:#121622; gap:0;">
+        <button type="button" id="btn-toggle-legacy-scroll" onclick="toggleLegacyGmScroll()" style="width:100%; padding:11px 14px; background:linear-gradient(135deg, #171d2e 0%, #1e263d 100%); border:none; color:#fbd38d; font-size:12px; font-weight:900; display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none; transition:background 0.15s ease;">
+          <span style="display:flex; align-items:center; gap:6px;">
+            <span>📜</span>
+            <span>[인텐트 양식 복사 / 수동 다이스 굴림]</span>
+          </span>
+          <span id="legacy-scroll-arrow" style="font-size:11px; color:#93c5fd; font-weight:800; transition:transform 0.25s ease;">▼ 펼치기</span>
+        </button>
+
+        <div id="legacy-gm-scroll-drawer" style="max-height:0; opacity:0; overflow:hidden; transition:max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, padding 0.25s ease; padding:0 14px; display:flex; flex-direction:column; gap:12px; border-top:0px solid #28334a;">
+          <!-- 1) 수동 마스터 판정 주사위 -->
+          <div style="background:#0d111a; border:1px solid #28334a; border-radius:8px; padding:10px 12px; display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+              <span style="font-size:12px; font-weight:900; color:#fbd38d; display:flex; align-items:center; gap:5px;">
+                <span>🎲 마스터 판정 주사위</span>
+                <span style="font-size:10px; color:#94a3b8; font-weight:normal;">(순수 1d20 · 무보정)</span>
+              </span>
+              <div style="display:flex; align-items:center; gap:4px;">
+                <button class="btn-action" style="padding:4px 9px;" onclick="rollEnemyDice('normal')">🎲 1d20</button>
+                <button class="btn-action" style="border-color:#22c55e; color:#86efac; padding:4px 9px;" onclick="rollEnemyDice('adv')">✨ 유리함</button>
+                <button class="btn-action" style="border-color:#ef4444; color:#fca5a5; padding:4px 9px;" onclick="rollEnemyDice('dis')">⚠️ 불리함</button>
+              </div>
+            </div>
+            <div style="background:#080a10; border:1px solid #1e2638; border-radius:6px; padding:6px 10px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:11px; color:#64748b; font-weight:800;">최근 굴림 결과</span>
+              <div id="dice-result-box" style="font-size:12.5px; font-weight:900; color:#fbd38d; text-align:right; white-space:nowrap;">대기</div>
+            </div>
+          </div>
+
+          <!-- 2) 인텐트 양식 프리뷰 & 복사 -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:12px; font-weight:900; color:#fbd38d;">📋 라운드 의도 (ENEMY INTENT)</span>
+              <button class="btn-action" onclick="advanceAllTurns()">패턴만 다음 턴 ➔</button>
+            </div>
+            <div class="intent-box" id="intent-preview-box" style="max-height:260px; overflow-y:auto;">적을 추가하면 인텐트가 실시간 생성됩니다.</div>
+            <button class="btn-primary py-2.5 rounded text-xs flex justify-center items-center gap-1.5" onclick="copyIntentText(this)">
+              <span>📋 인텐트 일괄 복사 (디스코드 붙여넣기용)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2페이즈 각성 모달 -->
+<div id="phase2-modal" class="phase2-modal" onclick="closePhase2Modal()">
+  <div class="phase2-content" onclick="event.stopPropagation()">
+    <div style="font-size:12px; font-weight:900; color:#f87171; letter-spacing:1px;">⚠️ CRITICAL (HP 50% 이하) — 보스 2페이즈 각성</div>
+    <div id="phase2-title" style="font-size:18px; font-weight:900; color:#fff;">각성명</div>
+    <div id="phase2-desc" style="font-size:12.5px; color:#e2e8f0; line-height:1.6; background:#0b080a; padding:10px 12px; border-radius:6px; border:1px solid #7f1d1d; white-space:pre-wrap;"></div>
+    <div style="font-size:11px; color:#94a3b8;">
+      ✦ <b>자동 적용:</b> AC 14 증가 / 외적 상태이상 및 1페이즈 방어막 해제 / 체내 지속피해(DoT) 유지 / 2페이즈 1턴 리셋
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:6px;">
+      <button class="btn-action" style="background:#450a0a; border-color:#ef4444; color:#fecaca;" onclick="copyPhase2Script()">📜 낭독문 복사</button>
+      <button class="btn-action" onclick="closePhase2Modal()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 토스트 알림 컨테이너 -->
+<div id="toast-container" class="toast-container"></div>
+
+<script src="gm_script.js?v=2.24.5"></script>
+</body>
+</html>
